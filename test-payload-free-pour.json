@@ -1,0 +1,44 @@
+{
+  "eventCategory": "order_updated",
+  "eventType": "order_updated",
+  "guid": "test-event-0001",
+  "details": {
+    "restaurantGuid": "ca749399-db34-462a-8792-f6de561b240f",
+    "order": {
+      "guid": "test-order-0001",
+      "displayNumber": "99",
+      "source": "In Store",
+      "voided": false,
+      "deleted": false,
+      "businessDate": 20260928,
+      "createdInTestMode": true,
+      "checks": [
+        {
+          "guid": "test-check-0001",
+          "displayNumber": "99",
+          "tabName": "037",
+          "paymentStatus": "CLOSED",
+          "voided": false,
+          "deleted": false,
+          "customer": null,
+          "appliedLoyaltyInfo": null,
+          "appliedDiscounts": [],
+          "selections": [
+            {
+              "guid": "test-selection-0001",
+              "displayName": "Free Monthly Pour",
+              "voided": false,
+              "item": {
+                "guid": "e9a3cfc6-b806-4ded-8728-614227c8cb56",
+                "entityType": "MenuItem"
+              },
+              "price": 0,
+              "quantity": 1,
+              "appliedDiscounts": []
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

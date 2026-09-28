@@ -1,0 +1,220 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 0 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "b0ecdb0a-7eda-4907-9b37-a8fcec1db871",
+      "name": "1st of Month 00:05 (Denver)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        16,
+        -16
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "75e45fc6-3166-4d03-8c44-5ed1d438bfc2",
+      "name": "Run Manually (test)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        16,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monthly reset: builds one GHL search request per status field and page.\nconst LOCATION_ID = 'XTpY4DQ6CrYVvesFdX3K';\nconst STATUS_FIELDS = [\n  { label: 'Free Monthly Pour', fieldId: 'nQ1XQVxK7dt5x2jkmzQK' },\n  { label: '50% off 4-Pack',    fieldId: 'CPdRbUyVL44UpTcIOHzc' },\n];\nconst PAGES = 10;      // 10 x 100 = up to 1,000 redeemed members per perk\nconst PAGE_LIMIT = 100;\nconst items = [];\nfor (const f of STATUS_FIELDS) for (let page = 1; page <= PAGES; page++) {\n  items.push({ json: { ...f, locationId: LOCATION_ID, page, pageLimit: PAGE_LIMIT } });\n}\nreturn items;"
+      },
+      "id": "9856a11f-3c1a-48c9-a5bf-c8a2dcddec4e",
+      "name": "Build Reset Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $json.locationId, page: $json.page, pageLimit: $json.pageLimit, filters: [ { field: 'customFields.' + $json.fieldId, operator: 'eq', value: 'Redeemed' } ] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5
+            }
+          }
+        }
+      },
+      "id": "a801775d-0876-4ece-89cb-e93e5bb6a7fa",
+      "name": "Find Redeemed Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SehDVTutwS7XzjTn",
+          "name": "Supabase ANS CRM"
+        },
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flattens search results into one item per member + field to reset.\nconst reqs = $('Build Reset Requests').all();\nconst seen = new Set();\nconst out = [];\n$input.all().forEach((item, i) => {\n  const req = reqs[i] ? reqs[i].json : {};\n  for (const c of item.json.contacts || []) {\n    const key = `${c.id}:${req.fieldId}`;\n    if (seen.has(key)) continue;\n    seen.add(key);\n    out.push({ json: { contactId: c.id, fieldId: req.fieldId, label: req.label } });\n  }\n});\nreturn out;"
+      },
+      "id": "38cb3f0e-d5d0-4de5-ba7e-e97c408859e3",
+      "name": "Collect Members",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [ { id: $json.fieldId, field_value: 'Available' } ] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5
+            }
+          }
+        }
+      },
+      "id": "cf3d918b-33f8-4f23-a417-258df0b9aae0",
+      "name": "Set Status = Available",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        976,
+        96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SehDVTutwS7XzjTn",
+          "name": "Supabase ANS CRM"
+        },
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "1st of Month 00:05 (Denver)": {
+      "main": [
+        [
+          {
+            "node": "Build Reset Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Manually (test)": {
+      "main": [
+        [
+          {
+            "node": "Build Reset Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reset Requests": {
+      "main": [
+        [
+          {
+            "node": "Find Redeemed Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Redeemed Members": {
+      "main": [
+        [
+          {
+            "node": "Collect Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Members": {
+      "main": [
+        [
+          {
+            "node": "Set Status = Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "5ed296676961c5ed41c639e1683078855c8f50e4c5aa1466963b063405345b3e"
+  }
+}

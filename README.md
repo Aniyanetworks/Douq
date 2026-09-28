@@ -1,0 +1,87 @@
+# Craft Mountain – Toast → n8n → GHL Member Benefits
+
+## What's in this package
+| File | Purpose |
+|---|---|
+| `1-toast-ghl-member-benefits.json` | Main workflow: Toast webhook → detect perk → find member by mug # → update GHL / alert |
+| `2-monthly-perk-reset.json` | Runs 00:05 on the 1st (Denver time): sets every "Redeemed" status back to "Available" |
+| `3-helper-list-ghl-field-ids.json` | Run once to get the GHL custom field IDs for the Config node |
+| `test-payload-free-pour.json` | Fake Toast order (mug 037 + Free Monthly Pour) for testing |
+
+## How it works
+Bartender rings up a benefit item and types the mug number (e.g. `037`) as the tab name → Toast sends `order_updated` → n8n:
+1. Ignores normal orders, open checks, other restaurants (and test-mode orders if enabled)
+2. Finds benefit items/discounts by GUID and reads the mug number from `tabName` (`037`, `37`, `#037`, `Mug 37` all work)
+3. Searches GHL for the contact whose **Mug Number** field matches
+4. Decides:
+   - **update** – marks the perk used (Period, Status, Date, Toast Order ID) + adds a note
+   - **ignore** – Toast re-sent the same order (duplicate webhook)
+   - **alert** – no mug number, unknown mug number, two members with the same mug, or perk already used this month
+   - **void** – if the benefit item is voided in Toast, the perk goes back to Available
+5. Month comes from Toast's `businessDate`, so a late-night Sept 30 pour counts as September
+
+## Setup
+
+### 1. GHL (Archimedes sub-account)
+Create these contact custom fields (folder "Member Benefits"):
+
+| Field | Type |
+|---|---|
+| Mug Number | Single line (unique per member, e.g. `037`) |
+| Free Pour Period | Single line |
+| Free Pour Status | Dropdown: `Available`, `Redeemed` |
+| Free Pour Redeemed Date | Date |
+| Free Pour Toast Order ID | Single line |
+| 4-Pack Period / Status / Redeemed Date / Toast Order ID | Same as above |
+| Initial Pour Date / Initial Pour Toast Order ID | Date / Single line |
+
+Fill in **Mug Number** for every member and set both statuses to **Available**.
+
+Create a **Private Integration token** (Settings → Private Integrations) with scopes: `contacts.readonly`, `contacts.write`, `locations/customFields.readonly`.
+
+### 2. n8n credential
+Credentials → New → **Header Auth**
+- Name: `Authorization`
+- Value: `Bearer <your GHL private integration token>`
+
+After importing, open every GHL HTTP node (Find Member, Update Member Fields, Add Note, Find Redeemed Members, Set Status, Get Custom Fields) and select this credential. The **Send Alert** node needs no credential.
+
+### 3. Import and configure
+1. Import all 3 workflows (Workflows → Import from file).
+2. In the helper workflow, replace `REPLACE_WITH_GHL_LOCATION_ID` in the URL and run it. It lists every custom field with its ID.
+3. Open **Config** in the main workflow and fill in:
+   - `LOCATION_ID`
+   - `FIELD_IDS.mugNumber`
+   - `BENEFIT_FIELDS` (the Period / Status / Date / Order ID field IDs)
+   - `BENEFITS`: replace `REPLACE_WITH_FREE_MONTHLY_POUR_GUID` with the real GUID (menu lookup), add mug/merch GUIDs if they exist
+   - `ALERT_WEBHOOK_URL`: a Slack incoming webhook, or a GHL Inbound Webhook workflow that sends an internal notification
+4. Open **Build Reset Requests** in the reset workflow and fill in `LOCATION_ID` and the two Status field IDs.
+
+### 4. Test (no POS needed)
+1. Create a test contact in GHL with Mug Number `037`, Free Pour Status `Available`.
+2. Put the real Free Monthly Pour GUID into `test-payload-free-pour.json`.
+3. In the main workflow click **Test workflow**, then send the payload to the **test URL**:
+```powershell
+Invoke-RestMethod -Method Post -Uri "https://YOUR-N8N/webhook-test/toast-benefits" -ContentType "application/json" -InFile "test-payload-free-pour.json"
+```
+4. Check the contact: Free Pour Period = `2026-09`, Status = Redeemed, note added.
+5. Send the same file again → nothing changes (duplicate).
+6. Change `"guid": "test-order-0001"` to `test-order-0002` and send → double-redemption alert.
+7. Change `tabName` to `999` → "no member found" alert. Remove it → "no mug number" alert.
+8. Change `paymentStatus` to `OPEN` → ignored.
+9. Run the reset workflow manually → status back to Available.
+
+### 5. Go live
+1. Activate both workflows.
+2. Toast Web → Integrations → Toast API access → Webhooks: edit the subscription (or create a new one) with the **production URL**: `https://YOUR-N8N/webhook/toast-benefits`.
+3. One test at the bar with Test Mode on: ring **Free Monthly Pour**, tab name `037`, close the check.
+4. After go-live, set `IGNORE_TEST_MODE: true` in Config.
+
+### Optional: verify Toast's signature
+Copy the subscription **Secret** from Toast into `TOAST_WEBHOOK_SECRET` and set `VERIFY_SIGNATURE: true`. Self-hosted n8n needs `NODE_FUNCTION_ALLOW_BUILTIN=crypto`. Test once with a real Toast order after enabling it. If it rejects valid orders, set it back to `false` and tell me.
+
+## Notes
+- Every Toast order reaches n8n, but only benefit orders call GHL, so GHL usage stays low.
+- Double redemptions are **flagged after the fact**; Toast can't block them at the register.
+- Unlimited perks (mug pricing, merch) only get a note, once per item.
+- Insider / VIP tiers: add their items to `BENEFITS`, `BENEFIT_KINDS` and `BENEFIT_FIELDS` when they launch.

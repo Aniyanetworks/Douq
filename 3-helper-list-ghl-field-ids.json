@@ -1,0 +1,88 @@
+{
+  "name": "Helper – List GHL Custom Field IDs",
+  "nodes": [
+    {
+      "id": "82a51ede-0b06-4dcf-8fb1-929f4aec54b4",
+      "name": "Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "91da7f63-69f9-400c-94fb-608808a1d9de",
+      "name": "Get Custom Fields",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/locations/XTpY4DQ6CrYVvesFdX3K/customFields",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9985c09a-9560-4f37-809f-393838fd8847",
+      "name": "List Field IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Prints each GHL custom field with its ID – copy the IDs into the Config nodes.\nconst fields = $json.customFields || [];\nreturn fields.map(f => ({ json: { name: f.name, id: f.id, key: f.fieldKey, type: f.dataType } }));"
+      }
+    }
+  ],
+  "connections": {
+    "Run": {
+      "main": [
+        [
+          {
+            "node": "Get Custom Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Custom Fields": {
+      "main": [
+        [
+          {
+            "node": "List Field IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false
+}
