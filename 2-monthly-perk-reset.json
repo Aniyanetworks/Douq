@@ -154,6 +154,58 @@
           "name": "Douq GHL"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One pipeline move per reset member, back to \"Perks Available\".\nconst LOCATION_ID = 'XTpY4DQ6CrYVvesFdX3K';\nconst PIPELINE_ID = 'ay4k4DUjXvvQaYnmmjIA';\nconst STAGE_AVAILABLE = '10497e96-254f-471e-8571-66b59f4b1dc5';\nconst MUG_FIELD = 'vWklTcHjmQV1tW52XIAb';\nconst seen = new Set();\nconst out = [];\nfor (const item of $input.all()) {\n  const c = item.json.contact || {};\n  if (!c.id || seen.has(c.id)) continue;\n  seen.add(c.id);\n  const mug = ((c.customFields || []).find(f => f.id === MUG_FIELD) || {}).value || '';\n  const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || c.id;\n  out.push({ json: { locationId: LOCATION_ID, pipelineId: PIPELINE_ID, stageId: STAGE_AVAILABLE, contactId: c.id, name: `${name} – Mug ${mug}` } });\n}\nreturn out;"
+      },
+      "id": "b69e882d-9410-4b9e-9aeb-6e5faeb7d015",
+      "name": "Pick Available Stage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $json.locationId, pipelineId: $json.pipelineId, contactId: $json.contactId, pipelineStageId: $json.stageId, name: $json.name, status: 'open' }) }}",
+        "options": {}
+      },
+      "id": "fa1beab6-8748-4ea0-8d26-5b842fb0bfd4",
+      "name": "Move to Perks Available",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1456,
+        96
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
     }
   ],
   "connections": {
@@ -206,6 +258,28 @@
         [
           {
             "node": "Set Status = Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status = Available": {
+      "main": [
+        [
+          {
+            "node": "Pick Available Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Available Stage": {
+      "main": [
+        [
+          {
+            "node": "Move to Perks Available",
             "type": "main",
             "index": 0
           }

@@ -1,0 +1,388 @@
+{
+  "name": "Craft Mountain – New Member Mug Number",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-member",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "61e65892-bb31-476f-8e54-498ac0e8dccc",
+      "name": "New Member Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "b638beab-a265-44b0-a44d-e350fce7643d"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG – new member mug numbers (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_DIGITS: 3,        // 38 -> \"038\"\n  START_AFTER: 0,       // highest mug number already handed out (only needed if not all members are in GHL yet)\n  SKIP: [],             // mug numbers never to hand out, e.g. [1, 13, 100]\n  ASSIGNED_TAG: 'mug-assigned', // GHL workflow on this tag sends the member their mug number by SMS\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    freePourStatus: 'nQ1XQVxK7dt5x2jkmzQK',\n    fourPackStatus: 'CPdRbUyVL44UpTcIOHzc',\n  },\n  PIPELINE: { id: 'ay4k4DUjXvvQaYnmmjIA', available: '10497e96-254f-471e-8571-66b59f4b1dc5' },\n}}];"
+      },
+      "id": "e7884efa-5a83-43e2-8e60-e5139cecea5c",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('New Member Webhook').first().json.body.contact_id || $('New Member Webhook').first().json.body.contactId || $('New Member Webhook').first().json.body.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1d64af4c-7996-4997-b654-9a802a34ad61",
+      "name": "Get Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One search request per page of members that already have a mug number.\nconst PAGES = 10;      // 10 x 100 = up to 1,000 members\nconst items = [];\nfor (let page = 1; page <= PAGES; page++) items.push({ json: { page, pageLimit: 100 } });\nreturn items;"
+      },
+      "id": "0d3f690c-6f17-4c3a-98bc-5966ed8628ee",
+      "name": "Build Search Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: $json.pageLimit, filters: [ { field: 'customFields.' + $('Config').first().json.FIELD_IDS.mugNumber, operator: 'exists' } ] }) }}",
+        "options": {}
+      },
+      "id": "0e1260b7-bf86-4405-9601-4dc617d75225",
+      "name": "Find Members with Mug #",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gives the new member the next free mug number (highest in GHL + 1).\n// A member who already has a mug number keeps it, and their perk statuses are left alone.\nconst cfg = $('Config').first().json;\nconst contact = $('Get Contact').first().json.contact || {};\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email || contact.id;\nconst own = mugOf(contact);\nif (own) {\n  return [{ json: { contactId: contact.id, name, mug: own, alreadyHad: true, fieldUpdates: [] } }];\n}\n\nconst taken = new Set();\nlet max = cfg.START_AFTER;\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    const n = parseInt(mugOf(c).replace(/\\D/g, ''), 10);\n    if (!n) continue;\n    taken.add(n);\n    if (n > max) max = n;\n  }\n}\n// GHL search can lag a few seconds behind; never reuse a number this workflow just gave out\nconst seen = $getWorkflowStaticData('global');\nif ((seen.lastMug || 0) > max) max = seen.lastMug;\n\nlet n = max + 1;\nwhile (taken.has(n) || cfg.SKIP.includes(n)) n++;\nif (n >= 10 ** cfg.MUG_DIGITS) throw new Error(`No ${cfg.MUG_DIGITS}-digit mug numbers left – raise MUG_DIGITS`);\nseen.lastMug = n;\nconst mug = String(n).padStart(cfg.MUG_DIGITS, '0');\nreturn [{ json: { contactId: contact.id, name, mug, alreadyHad: false,\n  fieldUpdates: [\n    { id: cfg.FIELD_IDS.mugNumber, field_value: mug },\n    { id: cfg.FIELD_IDS.freePourStatus, field_value: 'Available' },\n    { id: cfg.FIELD_IDS.fourPackStatus, field_value: 'Available' },\n  ] } }];"
+      },
+      "id": "64833c22-d907-4651-b1a2-ad0cd9771d5f",
+      "name": "Pick Mug Number",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: $json.fieldUpdates }) }}",
+        "options": {}
+      },
+      "id": "e8217c1e-3c27-44e2-b0e7-cc5852747aeb",
+      "name": "Save Mug Number",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, pipelineId: $('Config').first().json.PIPELINE.id, contactId: $('Pick Mug Number').item.json.contactId, pipelineStageId: $('Config').first().json.PIPELINE.available, name: $('Pick Mug Number').item.json.name + ' – Mug ' + $('Pick Mug Number').item.json.mug, status: 'open' }) }}",
+        "options": {}
+      },
+      "id": "58123f4c-eae3-471d-90bd-3f2a59678905",
+      "name": "Add to Member Perks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Pick Mug Number').item.json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [ $('Config').first().json.ASSIGNED_TAG ] }) }}",
+        "options": {}
+      },
+      "id": "f23db99e-7fcb-4690-975f-e36e2eca45df",
+      "name": "Tag mug-assigned",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.ALERT_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $('Pick Mug Number').item.json.alreadyHad ? `[Craft Mountain perks] ${$('Pick Mug Number').item.json.name} signed up again – keeps mug ${$('Pick Mug Number').item.json.mug}` : `[Craft Mountain perks] New member ${$('Pick Mug Number').item.json.name} – mug ${$('Pick Mug Number').item.json.mug}. Please prepare mug ${$('Pick Mug Number').item.json.mug}.`, alertType: 'new_member', mug: $('Pick Mug Number').item.json.mug, member: $('Pick Mug Number').item.json.name }) }}",
+        "options": {}
+      },
+      "id": "305dcf82-9290-4b42-9d78-d52865b12296",
+      "name": "Notify Staff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "New Member Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Contact": {
+      "main": [
+        [
+          {
+            "node": "Build Search Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Search Pages": {
+      "main": [
+        [
+          {
+            "node": "Find Members with Mug #",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Members with Mug #": {
+      "main": [
+        [
+          {
+            "node": "Pick Mug Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Mug Number": {
+      "main": [
+        [
+          {
+            "node": "Save Mug Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Mug Number": {
+      "main": [
+        [
+          {
+            "node": "Add to Member Perks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Member Perks": {
+      "main": [
+        [
+          {
+            "node": "Tag mug-assigned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag mug-assigned": {
+      "main": [
+        [
+          {
+            "node": "Notify Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false
+}

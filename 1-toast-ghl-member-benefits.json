@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – edit these values after import (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  RESTAURANT_GUID: 'ca749399-db34-462a-8792-f6de561b240f', // Craft Mountain Brewing (Toast)\n  TIMEZONE: 'America/Denver',\n  IGNORE_TEST_MODE: false,      // set true after go-live so Toast Test Mode orders are skipped\n  VERIFY_SIGNATURE: false,      // set true once the Toast webhook secret is added below\n  TOAST_WEBHOOK_SECRET: '',     // Toast Web > Integrations > Webhooks > subscription > Secret\n  MUG_DIGITS: 3,                // \"37\" -> \"037\"\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n\n  // Toast item / discount GUID -> benefit key\n  BENEFITS: {\n    'e9a3cfc6-b806-4ded-8728-614227c8cb56': 'free_pour',\n    'c88b437d-f32d-443d-820b-3082ddd0260d': 'four_pack',    // 50% off 4-Pack\n    '9b216070-9c8b-4d37-ae41-fba6bdc33c77': 'initial_pour', // Initial Member Pour\n    // 'REPLACE_WITH_MUG_PRICING_GUID': 'mug',\n    // 'REPLACE_WITH_MERCH_10_GUID': 'merch',\n  },\n  // monthly = once per month, once = once ever, log = unlimited (note only)\n  BENEFIT_KINDS: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'log', merch: 'log' },\n  BENEFIT_LABELS: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack', initial_pour: 'Initial Member Pour', mug: 'Mug pricing', merch: 'Merch 10%' },\n\n  // GHL custom field IDs (run the \"Helper – List GHL Custom Field IDs\" workflow to get them)\n  FIELD_IDS: { mugNumber: 'vWklTcHjmQV1tW52XIAb' },\n  BENEFIT_FIELDS: {\n    free_pour:    { period: 'sfwSQ746eytoaIErT1xL', status: 'nQ1XQVxK7dt5x2jkmzQK', date: 'Kzbwb0nNxFhlcNZoMrvP', orderId: 'd5zGuaAsujwiO4h3KMzm' },\n    four_pack:    { period: 'BpyqJNV3NHbz4mdskVzq', status: 'CPdRbUyVL44UpTcIOHzc', date: 'HmCaCCkzQGO0AE69ca22', orderId: 'Qx5rNt0TNh6GF9aZKoFn' },\n    initial_pour: { date: 'i9s94p3uVbJ8Gs5IrWHU', orderId: 'QPgwP99xNpVVXWB4w8iY' },\n  },\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – edit these values after import (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  RESTAURANT_GUID: 'ca749399-db34-462a-8792-f6de561b240f', // Craft Mountain Brewing (Toast)\n  TIMEZONE: 'America/Denver',\n  IGNORE_TEST_MODE: false,      // set true after go-live so Toast Test Mode orders are skipped\n  VERIFY_SIGNATURE: false,      // set true once the Toast webhook secret is added below\n  TOAST_WEBHOOK_SECRET: '',     // Toast Web > Integrations > Webhooks > subscription > Secret\n  MUG_DIGITS: 3,                // \"37\" -> \"037\"\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n\n  // Toast item / discount GUID -> benefit key\n  BENEFITS: {\n    'e9a3cfc6-b806-4ded-8728-614227c8cb56': 'free_pour',\n    'c88b437d-f32d-443d-820b-3082ddd0260d': 'four_pack',    // 50% off 4-Pack\n    '9b216070-9c8b-4d37-ae41-fba6bdc33c77': 'initial_pour', // Initial Member Pour\n    // 'REPLACE_WITH_MUG_PRICING_GUID': 'mug',\n    // 'REPLACE_WITH_MERCH_10_GUID': 'merch',\n  },\n  // monthly = once per month, once = once ever, log = unlimited (note only)\n  BENEFIT_KINDS: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'log', merch: 'log' },\n  BENEFIT_LABELS: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack', initial_pour: 'Initial Member Pour', mug: 'Mug pricing', merch: 'Merch 10%' },\n\n  // GHL custom field IDs (run the \"Helper – List GHL Custom Field IDs\" workflow to get them)\n  FIELD_IDS: { mugNumber: 'vWklTcHjmQV1tW52XIAb' },\n  BENEFIT_FIELDS: {\n    free_pour:    { period: 'sfwSQ746eytoaIErT1xL', status: 'nQ1XQVxK7dt5x2jkmzQK', date: 'Kzbwb0nNxFhlcNZoMrvP', orderId: 'd5zGuaAsujwiO4h3KMzm' },\n    four_pack:    { period: 'BpyqJNV3NHbz4mdskVzq', status: 'CPdRbUyVL44UpTcIOHzc', date: 'HmCaCCkzQGO0AE69ca22', orderId: 'Qx5rNt0TNh6GF9aZKoFn' },\n    initial_pour: { date: 'i9s94p3uVbJ8Gs5IrWHU', orderId: 'QPgwP99xNpVVXWB4w8iY' },\n  },\n\n  // GHL \"Member Perks\" pipeline: one card per member, moved after each redemption\n  PIPELINE: {\n    id: 'ay4k4DUjXvvQaYnmmjIA',\n    stages: {\n      available: '10497e96-254f-471e-8571-66b59f4b1dc5', // Perks Available\n      free_pour: 'f9ba5617-2bbc-42cc-9c8f-3dce1ce5ce22', // Free Pour Used\n      four_pack: '73baf16f-e0d2-4d8c-a94b-b076b1b2d28e', // 4-Pack Used\n      all: '160674ce-3c8f-4a07-976e-540f94f4fa69',       // All Perks Used\n      review: '0e44c91c-4012-4f75-b44a-1adae1a5650a',    // Needs Review\n    },\n  },\n}}];"
       },
       "id": "17b40bc1-3d40-4655-832f-750d1ba976aa",
       "name": "Config",
@@ -302,6 +302,72 @@
         -1872,
         544
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Picks the member's pipeline stage from both monthly perk statuses (after this update).\nconst cfg = $('Config').first().json;\nconst ev = $('Decide Action').item.json;\nconst c = ($('Find Member by Mug #').item.json.contacts || [])[0] || {};\nconst cf = {};\nfor (const f of c.customFields || []) cf[f.id] = f.value;\nfor (const u of ev.fieldUpdates || []) cf[u.id] = u.field_value;\nconst fp = cf[cfg.BENEFIT_FIELDS.free_pour.status] === 'Redeemed';\nconst fk = cf[cfg.BENEFIT_FIELDS.four_pack.status] === 'Redeemed';\nconst s = cfg.PIPELINE.stages;\nconst stageId = fp && fk ? s.all : fp ? s.free_pour : fk ? s.four_pack : s.available;\nreturn { json: { contactId: ev.contactId, name: `${ev.memberName} – Mug ${ev.mug}`, stageId } };"
+      },
+      "id": "ef49c1d6-ee70-4f44-b956-2dd85a7e633e",
+      "name": "Pick Stage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1392,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Double redemptions by a known member go to the \"Needs Review\" stage.\nconst cfg = $('Config').first().json;\nreturn $input.all()\n  .filter(i => i.json.alertType === 'double' && i.json.contactId)\n  .map(i => ({ json: { contactId: i.json.contactId, name: `${i.json.memberName} – Mug ${i.json.mug}`, stageId: cfg.PIPELINE.stages.review } }));"
+      },
+      "id": "0226591b-91cb-4629-8e63-95d699fd8fae",
+      "name": "Pick Review Stage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1872,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, pipelineId: $('Config').first().json.PIPELINE.id, contactId: $json.contactId, pipelineStageId: $json.stageId, name: $json.name, status: 'open' }) }}",
+        "options": {}
+      },
+      "id": "5aa83290-ea93-41ea-a35f-a5bc8c109495",
+      "name": "Move Pipeline Stage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1152,
+        480
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
     }
   ],
   "connections": {
@@ -381,6 +447,11 @@
             "node": "Send Alert",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Pick Review Stage",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -390,6 +461,39 @@
         [
           {
             "node": "Add Note to Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Note to Member": {
+      "main": [
+        [
+          {
+            "node": "Pick Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Stage": {
+      "main": [
+        [
+          {
+            "node": "Move Pipeline Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Review Stage": {
+      "main": [
+        [
+          {
+            "node": "Move Pipeline Stage",
             "type": "main",
             "index": 0
           }
