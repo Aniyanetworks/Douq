@@ -3,6 +3,14 @@ import { getMembers, AuthError } from './api.js';
 import { clock, monthName, shortDay } from './format.js';
 import { MemberCardsSkeleton } from './Skeleton.jsx';
 import MemberLog from './MemberLog.jsx';
+import MemberReminders from './MemberReminders.jsx';
+
+const SmsIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.5-4.9A8 8 0 1 1 21 12z" />
+    <path d="M8.5 12h.01M12 12h.01M15.5 12h.01" />
+  </svg>
+);
 
 const REFRESH_MS = 60_000;
 
@@ -16,6 +24,8 @@ export default function Members({ pin, onAuthError }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const closeLog = useCallback(() => setSelected(null), []);
+  const [remindersFor, setRemindersFor] = useState(null);
+  const closeReminders = useCallback(() => setRemindersFor(null), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,13 +124,25 @@ export default function Members({ pin, onAuthError }) {
               <span className="initial">
                 Initial Member Pour: {m.initialPour ? <b>received {shortDay(m.initialPour)}</b> : <b className="ok">not yet</b>}
               </span>
-              <span className="history-link">History ›</span>
+              <span className="card-actions">
+                <button
+                  className="icon-btn"
+                  title="Reminders sent"
+                  aria-label={`Reminders sent to mug ${m.mug}`}
+                  onClick={(e) => { e.stopPropagation(); setRemindersFor(m); }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <SmsIcon />
+                </button>
+                <span className="history-link">History ›</span>
+              </span>
             </div>
           </article>
         ))}
       </div>
 
       {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} />}
+      {remindersFor && <MemberReminders pin={pin} member={remindersFor} onClose={closeReminders} onAuthError={onAuthError} />}
     </section>
   );
 }

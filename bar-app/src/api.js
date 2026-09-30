@@ -18,6 +18,7 @@ async function call(action, pin, extra = {}) {
 
 export const getMembers = (pin) => call('members', pin);
 export const getLog = (pin, from, to) => call('log', pin, { from, to });
+export const getReminders = (pin, from, to) => call('reminders', pin, { from, to });
 
 // ---------- demo data ----------
 const DEMO_PIN = '1234';
@@ -42,6 +43,15 @@ async function demo(action, pin, { from, to }) {
         { mug: '037', name: 'Doug Reed', phone: '+13035550137', email: 'doug@example.com', perks: perks(['four_pack', 'mug']), initialPour: '2026-08-15' },
       ],
     };
+  }
+  if (action === 'reminders') {
+    const reminders = [
+      { sentAt: '2026-09-27T16:00:00Z', day: '2026-09-27', mug: '014', member: 'Carlos Rivera', kind: 'Last-chance reminder', unusedPerks: 'Free Monthly Pour, 50% off a 4-Pack, 10% off merchandise and 24oz beer at the 16oz price', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-27T16:00:00Z', day: '2026-09-27', mug: '002', member: 'Jane Smith', kind: 'Last-chance reminder', unusedPerks: '50% off a 4-Pack, 10% off merchandise and 24oz beer at the 16oz price', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-20T16:00:00Z', day: '2026-09-20', mug: '014', member: 'Carlos Rivera', kind: 'Reminder', unusedPerks: 'Free Monthly Pour, 50% off a 4-Pack, 10% off merchandise and 24oz beer at the 16oz price', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-20T16:00:00Z', day: '2026-09-20', mug: '037', member: 'Doug Reed', kind: 'Reminder', unusedPerks: 'Free Monthly Pour and 10% off merchandise', expiresOn: 'Sep 30' },
+    ].filter((r) => (!from || r.day >= from) && (!to || r.day <= to));
+    return { from, to, reminders };
   }
   const log = [
     { loggedAt: '2026-09-29T17:25:00Z', businessDay: '2026-09-29', mug: '001', member: 'Test User', perk: 'Initial Member Pour', event: 'redeem', orderId: 'test-order-0010', checkNumber: '99', detail: 'Initial Member Pour redeemed – check #99' },

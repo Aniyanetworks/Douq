@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
       },
       "id": "6505dbac-7c6f-4631-be57-f33cd76be673",
       "name": "Config",
@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nreturn [{ json: { route: body.action === 'log' ? 'log' : 'members', from: body.from || '', to: body.to || '' } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nreturn [{ json: { route: ['log', 'reminders'].includes(body.action) ? body.action : 'members', from: body.from || '', to: body.to || '' } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -121,6 +121,30 @@
               },
               "renameOutput": true,
               "outputKey": "denied"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c10ad380-94f2-43d6-bf80-ad82c3c87c45",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "reminders",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reminders"
             }
           ]
         },
@@ -255,7 +279,7 @@
       "typeVersion": 1.1,
       "position": [
         896,
-        600
+        1000
       ]
     },
     {
@@ -309,6 +333,85 @@
           "name": "Douq GHL"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One search request per page of Reminder Log records.\nconst items = [];\nfor (let page = 1; page <= 20; page++) items.push({ json: { page, pageLimit: 100 } }); // up to 2,000 reminders\nreturn items;"
+      },
+      "id": "c643b8c9-7f3f-44f7-bd66-3d2d0318d42f",
+      "name": "Build Reminder Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/objects/{{ $('Config').first().json.REMINDER_LOG_OBJECT }}/records/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: 'XTpY4DQ6CrYVvesFdX3K', page: $json.page, pageLimit: $json.pageLimit, query: '' }) }}",
+        "options": {}
+      },
+      "id": "79c8b9ba-8968-493d-bf79-de3728dd1562",
+      "name": "Search Reminder Logs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        800
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reminder Log records between from and to (YYYY-MM-DD), newest first.\nconst req = $('Check Request').first().json;\nconst from = req.from || '0000-00-00';\nconst to = req.to || '9999-99-99';\nconst prop = (p, k) => p[k] ?? p[`custom_objects.reminder_logs.${k}`] ?? '';\nconst seen = new Set();\nconst reminders = [];\nfor (const item of $input.all()) {\n  for (const r of item.json.records || []) {\n    if (seen.has(r.id)) continue;\n    seen.add(r.id);\n    const p = r.properties || {};\n    const sentAt = prop(p, 'sent_at') || r.createdAt || '';\n    const day = String(prop(p, 'business_day') || sentAt).slice(0, 10);\n    if (day < from || day > to) continue;\n    reminders.push({\n      sentAt, day, mug: prop(p, 'mug'), member: prop(p, 'member'), kind: prop(p, 'kind'),\n      unusedPerks: prop(p, 'unused_perks'), expiresOn: prop(p, 'expires_on'),\n    });\n  }\n}\nreminders.sort((a, b) => String(b.sentAt).localeCompare(String(a.sentAt)));\nreturn [{ json: { from: req.from, to: req.to, reminders } }];"
+      },
+      "id": "dafb1a60-dc4e-47ac-b293-d1544f9c0003",
+      "name": "Filter Reminders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "9ab806a7-c930-41ee-ab23-c1a287b20e07",
+      "name": "Send Reminders",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        800
+      ]
     }
   ],
   "connections": {
@@ -364,6 +467,13 @@
         [
           {
             "node": "Wrong PIN",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Reminder Pages",
             "type": "main",
             "index": 0
           }
@@ -430,6 +540,39 @@
         [
           {
             "node": "Filter Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reminder Pages": {
+      "main": [
+        [
+          {
+            "node": "Search Reminder Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Reminder Logs": {
+      "main": [
+        [
+          {
+            "node": "Filter Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Reminders": {
+      "main": [
+        [
+          {
+            "node": "Send Reminders",
             "type": "main",
             "index": 0
           }

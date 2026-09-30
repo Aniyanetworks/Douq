@@ -34,7 +34,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – unused-perk reminders (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  REMIND_ON_DAYS: [20],         // days of the month to send a reminder\n  REMIND_DAYS_BEFORE_END: [3],  // last-chance reminder, e.g. 3 = Sep 27 in a 30-day month\n  REMINDER_TAG: 'perk-reminder', // GHL workflow on this tag sends the SMS / email\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    unusedPerks: 'Iq0lDam7VOp7aMyTMxn6',\n    perksExpireOn: 't2zMwUi6cL6NzpzqipvS',\n  },\n  // Monthly perks, in the order they are listed in the message\n  PERKS: [\n    { label: 'Free Monthly Pour',                   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL' },\n    { label: '50% off a 4-Pack',                    status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq' },\n    { label: '10% off merchandise',                 status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG' },\n    { label: '24oz beer at the 16oz price',         status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC' },\n  ],\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – unused-perk reminders (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  REMIND_ON_DAYS: [20],         // days of the month to send a reminder\n  REMIND_DAYS_BEFORE_END: [3],  // last-chance reminder, e.g. 3 = Sep 27 in a 30-day month\n  REMINDER_TAG: 'perk-reminder', // GHL workflow on this tag sends the SMS / email\n  // GHL \"Reminder Log\" custom object (separate from the Perk Log)\n  REMINDER_LOG: { object: 'custom_objects.reminder_logs', associationId: '6abd29fb1f6d57727bd4f026' },\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    unusedPerks: 'Iq0lDam7VOp7aMyTMxn6',\n    perksExpireOn: 't2zMwUi6cL6NzpzqipvS',\n  },\n  // Monthly perks, in the order they are listed in the message\n  PERKS: [\n    { label: 'Free Monthly Pour',                   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL' },\n    { label: '50% off a 4-Pack',                    status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq' },\n    { label: '10% off merchandise',                 status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG' },\n    { label: '24oz beer at the 16oz price',         status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC' },\n  ],\n}}];"
       },
       "id": "556dcab8-cddc-464f-a6f5-a34fd24287ea",
       "name": "Config",
@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// One item per member with at least one monthly perk not used this month.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst expires = $now.endOf('month').toFormat('LLL d');\nconst seen = new Set();\nconst out = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id)) continue;\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const used = (p) => cf[p.status] === 'Redeemed' && cf[p.period] === period;\n    const unused = cfg.PERKS.filter(p => !used(p)).map(p => p.label);\n    if (!unused.length) continue;\n    const list = unused.length === 1 ? unused[0] : `${unused.slice(0, -1).join(', ')} and ${unused.at(-1)}`;\n    out.push({ json: { contactId: c.id, unusedPerks: list, perksExpireOn: expires } });\n  }\n}\nreturn out;"
+        "jsCode": "// One item per member with at least one monthly perk not used this month.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst expires = $now.endOf('month').toFormat('LLL d');\nconst seen = new Set();\nconst out = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id)) continue;\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const used = (p) => cf[p.status] === 'Redeemed' && cf[p.period] === period;\n    const unused = cfg.PERKS.filter(p => !used(p)).map(p => p.label);\n    if (!unused.length) continue;\n    const list = unused.length === 1 ? unused[0] : `${unused.slice(0, -1).join(', ')} and ${unused.at(-1)}`;\n    const mug = String(cf[cfg.FIELD_IDS.mugNumber] || '');\n    const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '';\n    out.push({ json: { contactId: c.id, mug, name, unusedPerks: list, perksExpireOn: expires } });\n  }\n}\nreturn out;"
       },
       "id": "0da96284-f696-4057-b2e0-a067075559ee",
       "name": "Pick Members to Remind",
@@ -226,6 +226,110 @@
           "name": "Douq GHL"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One \"Reminder Log\" record per member reminded.\nconst cfg = $('Config').first().json;\nconst reminded = $('Pick Members to Remind').all();\nconst daysLeft = $now.endOf('month').day - $now.day;\nconst kind = $execution.mode === 'manual' ? 'Test reminder'\n  : cfg.REMIND_DAYS_BEFORE_END.includes(daysLeft) ? 'Last-chance reminder' : 'Reminder';\nreturn $input.all().map((_, i) => {\n  const m = reminded.at(i).json;\n  return { json: {\n    contactId: m.contactId,\n    properties: {\n      mark_as_unique: `#${m.mug || '–'} · ${kind}`, // primary field (shown as Title in GHL)\n      sent_at: new Date().toISOString(),\n      business_day: $now.toFormat('yyyy-MM-dd'),\n      mug: m.mug,\n      member: m.name,\n      kind,\n      unused_perks: m.unusedPerks,\n      expires_on: m.perksExpireOn,\n    },\n  } };\n});"
+      },
+      "id": "a613dbde-1005-49d6-927d-f3ae42101e51",
+      "name": "Build Reminder Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/objects/{{ $('Config').first().json.REMINDER_LOG.object }}/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, properties: $json.properties }) }}",
+        "options": {}
+      },
+      "id": "69ab6d50-bffd-480b-abbe-5cb115801b03",
+      "name": "Create Reminder Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2176,
+        96
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $('Build Reminder Log').all();\nreturn $input.all()\n  .map((item, i) => ({ json: { recordId: (item.json.record || item.json).id, contactId: rows.at(i).json.contactId } }))\n  .filter(i => i.json.recordId && i.json.contactId);"
+      },
+      "id": "c8ec9da6-8dde-4192-9ca8-2bdbca91cfdd",
+      "name": "Pick Member Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2416,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/associations/relations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, associationId: $('Config').first().json.REMINDER_LOG.associationId, firstRecordId: $json.contactId, secondRecordId: $json.recordId }) }}",
+        "options": {}
+      },
+      "id": "58d70142-21a7-4884-bcb6-7f07d113f246",
+      "name": "Link to Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2656,
+        96
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
     }
   ],
   "connections": {
@@ -311,6 +415,50 @@
         [
           {
             "node": "Tag perk-reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag perk-reminder": {
+      "main": [
+        [
+          {
+            "node": "Build Reminder Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reminder Log": {
+      "main": [
+        [
+          {
+            "node": "Create Reminder Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Member Links": {
+      "main": [
+        [
+          {
+            "node": "Link to Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Reminder Log": {
+      "main": [
+        [
+          {
+            "node": "Pick Member Links",
             "type": "main",
             "index": 0
           }

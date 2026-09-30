@@ -3,6 +3,13 @@ import { DEMO } from './api.js';
 import Login from './Login.jsx';
 import Members from './Members.jsx';
 import Log from './Log.jsx';
+import Reminders from './Reminders.jsx';
+
+const TABS = [
+  { key: 'members', label: 'Members', Page: Members },
+  { key: 'log', label: 'Log', Page: Log },
+  { key: 'reminders', label: 'Reminders', Page: Reminders },
+];
 
 const PIN_KEY = 'mugclub-pin';
 
@@ -22,6 +29,7 @@ export default function App() {
   const lock = useCallback(() => { writePin(''); setPin(''); }, []);
 
   if (!pin) return <Login onUnlock={unlock} />;
+  const { Page } = TABS.find((t) => t.key === tab);
 
   return (
     <div className="app">
@@ -30,14 +38,15 @@ export default function App() {
           Craft Mountain <span>Mug Club</span>
         </div>
         <nav className="tabs">
-          <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>Members</button>
-          <button className={tab === 'log' ? 'active' : ''} onClick={() => setTab('log')}>Log</button>
+          {TABS.map((t) => (
+            <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)}>{t.label}</button>
+          ))}
         </nav>
         <button className="lock" onClick={lock}>Lock</button>
       </header>
       {DEMO && <div className="demo">Demo data – set VITE_API_URL to connect to GHL</div>}
       <main>
-        {tab === 'members' ? <Members pin={pin} onAuthError={lock} /> : <Log pin={pin} onAuthError={lock} />}
+        <Page pin={pin} onAuthError={lock} />
       </main>
     </div>
   );
