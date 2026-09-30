@@ -1,0 +1,447 @@
+{
+  "name": "06.Craft Mountain – Bartender Site API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bar-api",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "32cfe113-1d8a-44d4-be62-220697103e52",
+      "name": "Bar API Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "51e69fcd-4312-4e58-94a3-20b0b48fb117"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
+      },
+      "id": "6505dbac-7c6f-4631-be57-f33cd76be673",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nreturn [{ json: { route: body.action === 'log' ? 'log' : 'members', from: body.from || '', to: body.to || '' } }];"
+      },
+      "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
+      "name": "Check Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0e2cf6bf-2c42-4afb-8004-f9f43341beb2",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "members",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "members"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d9173e6c-5f52-4840-b138-0f3bef8ef57e",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "log",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "log"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "47caff57-30aa-4ab5-b367-d61bfa4d0ee8",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "denied",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "denied"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "38b7b214-05ea-4870-a925-422af1d7ffd3",
+      "name": "Route Request",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One search request per page of members with a mug number.\nconst items = [];\nfor (let page = 1; page <= 10; page++) items.push({ json: { page, pageLimit: 100 } }); // up to 1,000 members\nreturn items;"
+      },
+      "id": "f275446e-1432-45fd-829b-584d83038e9a",
+      "name": "Build Search Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: $json.pageLimit, filters: [ { field: 'customFields.' + $('Config').first().json.MUG_FIELD, operator: 'exists' } ] }) }}",
+        "options": {}
+      },
+      "id": "296ce451-8908-4241-b39e-99b9b6f24de1",
+      "name": "Find Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        160
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id)) continue;\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nreturn [{ json: { period, updatedAt: new Date().toISOString(), members } }];"
+      },
+      "id": "d7efb48f-346d-4dbc-a56e-5eb536cdca41",
+      "name": "Shape Members",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "fa90951e-3fab-4f97-9364-5f431697cd51",
+      "name": "Send Members",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Perk Log records between from and to (business days, YYYY-MM-DD), newest first.\nconst req = $('Check Request').first().json;\nconst from = req.from || '0000-00-00';\nconst to = req.to || '9999-99-99';\nconst prop = (p, k) => p[k] ?? p[`custom_objects.perk_logs.${k}`] ?? '';\nconst seen = new Set();\nconst log = [];\nfor (const item of $input.all()) {\n  for (const r of item.json.records || []) {\n    if (seen.has(r.id)) continue;\n    seen.add(r.id);\n    const p = r.properties || {};\n    const loggedAt = prop(p, 'logged_at') || r.createdAt || '';\n    const businessDay = String(prop(p, 'business_day') || loggedAt).slice(0, 10);\n    if (businessDay < from || businessDay > to) continue;\n    log.push({\n      loggedAt, businessDay,\n      mug: prop(p, 'mug'), member: prop(p, 'member'), perk: prop(p, 'perk'), event: prop(p, 'event'),\n      orderId: prop(p, 'toast_order_id'), checkNumber: prop(p, 'check_number'), detail: prop(p, 'detail'),\n    });\n  }\n}\nlog.sort((a, b) => String(b.loggedAt).localeCompare(String(a.loggedAt)));\nreturn [{ json: { from: req.from, to: req.to, log } }];"
+      },
+      "id": "dc0600f2-7dbe-4d38-b458-0d908eaba25f",
+      "name": "Filter Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "65b4b85d-15cc-467d-a681-ff22ede6956a",
+      "name": "Send Log",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: \"Wrong PIN\" }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "e1dd489a-0d99-4fba-822f-2953302df436",
+      "name": "Wrong PIN",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One search request per page of Perk Log records.\nconst items = [];\nfor (let page = 1; page <= 20; page++) items.push({ json: { page, pageLimit: 100 } }); // up to 2,000 log entries\nreturn items;"
+      },
+      "id": "c8573e7f-f1e1-4527-a6bc-d34dfaff659e",
+      "name": "Build Log Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/objects/custom_objects.perk_logs/records/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: 'XTpY4DQ6CrYVvesFdX3K', page: $json.page, pageLimit: $json.pageLimit, query: '' }) }}",
+        "options": {}
+      },
+      "id": "083f8f94-2b06-40d0-9a2a-ceb9c0b8ec59",
+      "name": "Search Perk Logs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        400
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Bar API Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Check Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Request": {
+      "main": [
+        [
+          {
+            "node": "Route Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Request": {
+      "main": [
+        [
+          {
+            "node": "Build Search Pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Log Pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wrong PIN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Search Pages": {
+      "main": [
+        [
+          {
+            "node": "Find Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Members": {
+      "main": [
+        [
+          {
+            "node": "Shape Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Members": {
+      "main": [
+        [
+          {
+            "node": "Send Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Log": {
+      "main": [
+        [
+          {
+            "node": "Send Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Log Pages": {
+      "main": [
+        [
+          {
+            "node": "Search Perk Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Perk Logs": {
+      "main": [
+        [
+          {
+            "node": "Filter Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false
+}

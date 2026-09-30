@@ -368,6 +368,110 @@
           "name": "Douq GHL"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One GHL \"Perk Log\" record per redemption, void, note or alert (Toast re-sends are skipped).\nconst labels = $('Config').first().json.BENEFIT_LABELS;\nconst EVENT_NAMES = { redeem: 'Redeemed', used: 'Used', void: 'Voided', double: 'Double use', no_member: 'Unknown mug', no_mug: 'No mug on tab', duplicate_mug: 'Duplicate mug' };\nreturn $input.all()\n  .filter(i => i.json.action !== 'ignore')\n  .map(({ json: e }) => {\n    const event = e.action === 'update' ? (e.type === 'void' ? 'void' : 'redeem') : e.action === 'note' ? 'used' : (e.alertType || 'alert');\n    const perk = labels[e.benefit] || e.benefit;\n    return { json: {\n      contactId: e.contactId || '',\n      properties: {\n        title: `#${e.mug || '–'} · ${perk} · ${EVENT_NAMES[event] || event}`,\n        logged_at: new Date().toISOString(),\n        business_day: e.businessDay || '',\n        mug: e.mug || '',\n        member: e.memberName || '',\n        perk,\n        event,\n        toast_order_id: e.orderGuid || '',\n        check_number: String(e.displayNumber || ''),\n        detail: e.alertText || e.note || '',\n      },\n    } };\n  });"
+      },
+      "id": "9edbf580-96dc-42c5-b7e9-c08cf58f700a",
+      "name": "Build Log Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2112,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/objects/custom_objects.perk_logs/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, properties: $json.properties }) }}",
+        "options": {}
+      },
+      "id": "aa503cda-ff1d-4322-9e33-cde18190cc9a",
+      "name": "Create Perk Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1872,
+        928
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Alerts without a known member (no mug / unknown mug) are logged but not linked.\nconst rows = $('Build Log Row').all();\nreturn $input.all()\n  .map((item, i) => ({ json: { recordId: (item.json.record || item.json).id, contactId: rows.at(i).json.contactId } }))\n  .filter(i => i.json.recordId && i.json.contactId);"
+      },
+      "id": "308af3f7-82c9-4682-bec3-466c98d743cf",
+      "name": "Pick Member Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1632,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/associations/relations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, associationId: '6abce7b37670f69e4ea03353', firstRecordId: $json.contactId, secondRecordId: $json.recordId }) }}",
+        "options": {}
+      },
+      "id": "55265132-4137-447a-a780-3df6caa3a626",
+      "name": "Link to Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1392,
+        928
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      }
     }
   ],
   "connections": {
@@ -420,6 +524,11 @@
         [
           {
             "node": "Route",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Log Row",
             "type": "main",
             "index": 0
           }
@@ -494,6 +603,39 @@
         [
           {
             "node": "Move Pipeline Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Log Row": {
+      "main": [
+        [
+          {
+            "node": "Create Perk Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Perk Log": {
+      "main": [
+        [
+          {
+            "node": "Pick Member Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Member Links": {
+      "main": [
+        [
+          {
+            "node": "Link to Member",
             "type": "main",
             "index": 0
           }

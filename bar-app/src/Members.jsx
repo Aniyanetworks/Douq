@@ -1,0 +1,103 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getMembers, AuthError } from './api.js';
+import { clock, monthName, shortDay } from './format.js';
+
+const REFRESH_MS = 60_000;
+
+// "37", "037", "#037" and "Mug 37" all mean mug 37
+const mugDigits = (s) => String(s).replace(/\D/g, '').replace(/^0+/, '');
+
+export default function Members({ pin, onAuthError }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setData(await getMembers(pin));
+      setError('');
+    } catch (err) {
+      if (err instanceof AuthError) return onAuthError();
+      setError(`Couldn't refresh (${err.message}). Showing the last list.`);
+    } finally {
+      setLoading(false);
+    }
+  }, [pin, onAuthError]);
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, REFRESH_MS);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const members = useMemo(() => {
+    const list = data?.members || [];
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    const digits = mugDigits(q);
+    const byMug = /^\s*(mug)?\s*#?\s*\d+\s*$/i.test(q);
+    if (byMug) return list.filter((m) => mugDigits(m.mug) === digits);
+    const phoneDigits = q.replace(/\D/g, '');
+    return list.filter((m) =>
+      m.name.toLowerCase().includes(q) ||
+      m.email.toLowerCase().includes(q) ||
+      (phoneDigits && m.phone.replace(/\D/g, '').includes(phoneDigits)),
+    );
+  }, [data, query]);
+
+  return (
+    <section>
+      <div className="toolbar">
+        <input
+          className="search"
+          type="search"
+          placeholder="Mug number or name…"
+          inputMode="search"
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button onClick={load} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
+      </div>
+
+      <p className="meta">
+        {data ? <>Perks for <b>{monthName(data.period)}</b> · {data.members.length} members · updated {clock(data.updatedAt)}</> : 'Loading members…'}
+      </p>
+      {error && <p className="error">{error}</p>}
+
+      {data && members.length === 0 && (
+        <div className="empty">
+          No member found{query ? <> for “{query}”</> : ''}.
+          {query && <><br />Check the mug number, or ask a manager to add the member in GHL.</>}
+        </div>
+      )}
+
+      <div className="cards">
+        {members.map((m) => (
+          <article key={m.mug + m.name} className="card">
+            <div className="card-head">
+              <div className="mug">#{m.mug}</div>
+              <div>
+                <div className="name">{m.name}</div>
+                <div className="contact">{m.phone || m.email}</div>
+              </div>
+            </div>
+            <ul className="perks">
+              {m.perks.map((p) => (
+                <li key={p.key} className={p.used ? 'perk used' : 'perk available'}>
+                  <span>{p.label}</span>
+                  <b>{p.used ? `Used ${shortDay(p.date)}` : 'Available'}</b>
+                </li>
+              ))}
+            </ul>
+            <div className="initial">
+              Initial Member Pour: {m.initialPour ? <b>received {shortDay(m.initialPour)}</b> : <b className="ok">not yet</b>}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
