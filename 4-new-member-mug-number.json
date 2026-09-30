@@ -65,7 +65,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -102,7 +105,14 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: $json.pageLimit, filters: [ { field: 'customFields.' + $('Config').first().json.FIELD_IDS.mugNumber, operator: 'exists' } ] }) }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "id": "0e1260b7-bf86-4405-9601-4dc617d75225",
       "name": "Find Members with Mug #",
@@ -117,7 +127,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -169,7 +182,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -208,7 +224,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -247,7 +266,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -274,7 +296,10 @@
       "position": [
         2016,
         300
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

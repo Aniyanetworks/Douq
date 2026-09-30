@@ -8,40 +8,40 @@
           "rawBody": true
         }
       },
-      "id": "dad7c77a-d107-470d-a3e0-aa6a225f3706",
+      "id": "98de368b-7648-4d7a-90f6-fc7b9f5e6065",
       "name": "Toast Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -13424,
-        6016
+        -63152,
+        29488
       ],
       "webhookId": "d0a9177e-8e62-41e8-9c1b-a98644f5a81a"
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – edit these values after import (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  RESTAURANT_GUID: 'ca749399-db34-462a-8792-f6de561b240f', // Craft Mountain Brewing (Toast)\n  TIMEZONE: 'America/Denver',\n  IGNORE_TEST_MODE: false,      // set true after go-live so Toast Test Mode orders are skipped\n  VERIFY_SIGNATURE: false,      // set true once the Toast webhook secret is added below\n  TOAST_WEBHOOK_SECRET: '',     // Toast Web > Integrations > Webhooks > subscription > Secret\n  MUG_DIGITS: 5,                // \"37\" -> \"00037\"\n  MEMBER_TAG: 'mug-club-member',   // only contacts with this tag are Mug Club members (guests also have mug numbers)\n  // Production URL of workflow 4 (New Member Mug Number) – assigns the mug number to members created from Toast guests\n  NEW_MEMBER_WEBHOOK_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook/new-member',\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n\n  // Toast item / discount GUID -> benefit key\n  BENEFITS: {\n    'e9a3cfc6-b806-4ded-8728-614227c8cb56': 'free_pour',\n    'c88b437d-f32d-443d-820b-3082ddd0260d': 'four_pack',    // 50% off 4-Pack\n    '9b216070-9c8b-4d37-ae41-fba6bdc33c77': 'initial_pour', // Initial Member Pour\n    '983ba063-e991-447f-83ef-9c3ce7ea0f3b': 'mug',          // Special Mug Pricing (24oz at 16oz)\n    '14281b9e-6aef-421a-b1c8-00885f4e95c4': 'merch',        // Merchandise 10%\n    'c4d8accd-1f31-443d-8689-a202f6e52b64': 'member_mug',   // Member Mug\n  },\n  // monthly = once per month, once = once ever, log = unlimited (note only)\n  BENEFIT_KINDS: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'monthly', merch: 'monthly', member_mug: 'log' },\n  BENEFIT_LABELS: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack', initial_pour: 'Initial Member Pour', mug: 'Mug pricing', merch: 'Merch 10%', member_mug: 'Member Mug' },\n\n  // GHL custom field IDs (run the \"Helper – List GHL Custom Field IDs\" workflow to get them)\n  FIELD_IDS: { mugNumber: 'vWklTcHjmQV1tW52XIAb' },\n  BENEFIT_FIELDS: {\n    free_pour:    { period: 'sfwSQ746eytoaIErT1xL', status: 'nQ1XQVxK7dt5x2jkmzQK', date: 'Kzbwb0nNxFhlcNZoMrvP', orderId: 'd5zGuaAsujwiO4h3KMzm' },\n    four_pack:    { period: 'BpyqJNV3NHbz4mdskVzq', status: 'CPdRbUyVL44UpTcIOHzc', date: 'HmCaCCkzQGO0AE69ca22', orderId: 'Qx5rNt0TNh6GF9aZKoFn' },\n    initial_pour: { date: 'i9s94p3uVbJ8Gs5IrWHU', orderId: 'QPgwP99xNpVVXWB4w8iY' },\n    merch:        { period: 'KKeZG0ZINPUecpSVpyhG', status: 'hUof3kNaxMaSle2hym89', date: '4N9eBmteLZT32n7H26Di', orderId: 'aK57I3miSRJ2xdLBjU8O' },\n    mug:          { period: '72x0lCUx388Wko8MGSlC', status: 'wrl8FbQuiPNbEATFZcUY', date: 'NSE4Zsviw6HOoQkQB6t1', orderId: 'SaeAergSBjYbMNjW9eZu' },\n  },\n\n  // GHL \"Member Perks\" pipeline: one card per member, moved after each redemption\n  PIPELINE: {\n    id: 'ay4k4DUjXvvQaYnmmjIA',\n    stages: {\n      available: '10497e96-254f-471e-8571-66b59f4b1dc5', // Perks Available\n      free_pour: 'f9ba5617-2bbc-42cc-9c8f-3dce1ce5ce22', // Free Pour Used\n      four_pack: '73baf16f-e0d2-4d8c-a94b-b076b1b2d28e', // 4-Pack Used\n      all: '160674ce-3c8f-4a07-976e-540f94f4fa69',       // All Perks Used\n      review: '0e44c91c-4012-4f75-b44a-1adae1a5650a',    // Needs Review\n    },\n  },\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – edit these values after import (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  RESTAURANT_GUID: 'ca749399-db34-462a-8792-f6de561b240f', // Craft Mountain Brewing (Toast)\n  TIMEZONE: 'America/Denver',\n  IGNORE_TEST_MODE: false,      // set true after go-live so Toast Test Mode orders are skipped\n  VERIFY_SIGNATURE: false,      // set true once the Toast webhook secret is added below\n  TOAST_WEBHOOK_SECRET: '',     // Toast Web > Integrations > Webhooks > subscription > Secret\n  MUG_DIGITS: 5,                // \"37\" -> \"00037\"\n  // GHL \"Toast Event Lock\" object (primary field unique): each Toast perk event is processed once\n  EVENT_LOCK_OBJECT: 'custom_objects.toast_event_locks',\n  MEMBER_TAG: 'mug-club-member',   // only contacts with this tag are Mug Club members (guests also have mug numbers)\n  // Production URL of workflow 4 (New Member Mug Number) – assigns the mug number to members created from Toast guests\n  NEW_MEMBER_WEBHOOK_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook/new-member',\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n\n  // Toast item / discount GUID -> benefit key\n  BENEFITS: {\n    'e9a3cfc6-b806-4ded-8728-614227c8cb56': 'free_pour',\n    'c88b437d-f32d-443d-820b-3082ddd0260d': 'four_pack',    // 50% off 4-Pack\n    '9b216070-9c8b-4d37-ae41-fba6bdc33c77': 'initial_pour', // Initial Member Pour\n    '983ba063-e991-447f-83ef-9c3ce7ea0f3b': 'mug',          // Special Mug Pricing (24oz at 16oz)\n    '14281b9e-6aef-421a-b1c8-00885f4e95c4': 'merch',        // Merchandise 10%\n    'c4d8accd-1f31-443d-8689-a202f6e52b64': 'member_mug',   // Member Mug\n  },\n  // monthly = once per month, once = once ever, log = unlimited (note only)\n  BENEFIT_KINDS: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'monthly', merch: 'monthly', member_mug: 'log' },\n  BENEFIT_LABELS: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack', initial_pour: 'Initial Member Pour', mug: 'Mug pricing', merch: 'Merch 10%', member_mug: 'Member Mug' },\n\n  // GHL custom field IDs (run the \"Helper – List GHL Custom Field IDs\" workflow to get them)\n  FIELD_IDS: { mugNumber: 'vWklTcHjmQV1tW52XIAb' },\n  BENEFIT_FIELDS: {\n    free_pour:    { period: 'sfwSQ746eytoaIErT1xL', status: 'nQ1XQVxK7dt5x2jkmzQK', date: 'Kzbwb0nNxFhlcNZoMrvP', orderId: 'd5zGuaAsujwiO4h3KMzm' },\n    four_pack:    { period: 'BpyqJNV3NHbz4mdskVzq', status: 'CPdRbUyVL44UpTcIOHzc', date: 'HmCaCCkzQGO0AE69ca22', orderId: 'Qx5rNt0TNh6GF9aZKoFn' },\n    initial_pour: { date: 'i9s94p3uVbJ8Gs5IrWHU', orderId: 'QPgwP99xNpVVXWB4w8iY' },\n    merch:        { period: 'KKeZG0ZINPUecpSVpyhG', status: 'hUof3kNaxMaSle2hym89', date: '4N9eBmteLZT32n7H26Di', orderId: 'aK57I3miSRJ2xdLBjU8O' },\n    mug:          { period: '72x0lCUx388Wko8MGSlC', status: 'wrl8FbQuiPNbEATFZcUY', date: 'NSE4Zsviw6HOoQkQB6t1', orderId: 'SaeAergSBjYbMNjW9eZu' },\n  },\n\n  // GHL \"Member Perks\" pipeline: one card per member, moved after each redemption\n  PIPELINE: {\n    id: 'ay4k4DUjXvvQaYnmmjIA',\n    stages: {\n      available: '10497e96-254f-471e-8571-66b59f4b1dc5', // Perks Available\n      free_pour: 'f9ba5617-2bbc-42cc-9c8f-3dce1ce5ce22', // Free Pour Used\n      four_pack: '73baf16f-e0d2-4d8c-a94b-b076b1b2d28e', // 4-Pack Used\n      all: '160674ce-3c8f-4a07-976e-540f94f4fa69',       // All Perks Used\n      review: '0e44c91c-4012-4f75-b44a-1adae1a5650a',    // Needs Review\n    },\n  },\n}}];"
       },
-      "id": "a1055443-6b24-4ecd-8f7c-91cdbaa56ba6",
+      "id": "a0e17e1c-2f17-447a-bbb8-d026482941df",
       "name": "Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -13232,
-        6016
+        -62928,
+        29488
       ]
     },
     {
       "parameters": {
         "jsCode": "// Reads the Toast order_updated webhook and outputs one item per benefit found.\n// Returns nothing (workflow stops) for normal orders.\nconst cfg = $('Config').first().json;\nconst input = $('Toast Webhook').first();\nconst headers = input.json.headers || {};\nlet body = input.json.body;\nlet raw = null;\nif (input.binary && input.binary.data) {\n  raw = Buffer.from(input.binary.data.data, 'base64').toString('utf8');\n  if (!body || typeof body !== 'object') { try { body = JSON.parse(raw); } catch (e) {} }\n}\nif (!body) return [];\n\n// Optional: verify Toast signature (needs NODE_FUNCTION_ALLOW_BUILTIN=crypto on the n8n server)\nif (cfg.VERIFY_SIGNATURE) {\n  const crypto = require('crypto');\n  const expected = crypto.createHmac('sha256', cfg.TOAST_WEBHOOK_SECRET)\n    .update(raw || JSON.stringify(body)).digest('base64');\n  if (expected !== headers['toast-signature']) throw new Error('Invalid Toast signature – request rejected');\n}\n\nconst rid = (body.details && body.details.restaurantGuid) || headers['toast-restaurant-external-id'];\nif (cfg.RESTAURANT_GUID && rid && rid !== cfg.RESTAURANT_GUID) return [];\n\nconst order = body.details && body.details.order;\nif (!order) return [];\nif (cfg.IGNORE_TEST_MODE && order.createdInTestMode) return [];\n\n// Tab name -> mug number, padded to MUG_DIGITS (\"37\", \"0037\" and \"00037\" all -> \"00037\").\n// Accepts \"37\", \"#37\", \"Mug 37\", and a name next to it: \"37 Manam\", \"Manam #37\", \"Testing 37\"\n// (online orders use the customer name as the tab name). \"Table 12\", \"Seat 4\", \"Bar 2\" are not mug numbers.\nconst NOT_A_MUG = /\\b(?:table|tbl|seat|booth|bar|patio|tab|order|check|party|guests?|pax|room)\\s*#?\\s*\\d+/gi;\nconst parseMug = (tab) => {\n  const s = String(tab || '').replace(NOT_A_MUG, ' ');\n  const m = s.match(/^\\s*(?:mug\\s*)?#?\\s*(\\d{1,7})(?!\\d)/i)\n    || s.match(/(?:\\bmug\\s*#?|#)\\s*(\\d{1,7})(?!\\d)/i)\n    || s.match(/(?:^|\\s)(\\d{1,7})(?=\\s*$)/);\n  const n = m ? parseInt(m[1], 10) : 0;\n  return n ? String(n).padStart(cfg.MUG_DIGITS, '0') : '';\n};\n\nconst bd = String(order.businessDate || '');\nconst period = bd.length === 8 ? `${bd.slice(0, 4)}-${bd.slice(4, 6)}` : '';\nconst businessDay = bd.length === 8 ? `${bd.slice(0, 4)}-${bd.slice(4, 6)}-${bd.slice(6, 8)}` : '';\nconst events = [];\n\nfor (const check of order.checks || []) {\n  const status = String(check.paymentStatus || '').toUpperCase();\n  const closed = status === 'PAID' || status === 'CLOSED';\n  const mug = parseMug(check.tabName);\n  // Webhooks only carry the guest id; \"Get Toast Order\" fetches name / email / phone when there is no mug number\n  const cust = check.customer || {};\n  const customerName = [cust.firstName, cust.lastName].filter(Boolean).join(' ');\n\n  const add = (guid, sel, source) => {\n    const benefit = guid && cfg.BENEFITS[guid];\n    if (!benefit) return;\n    const voided = !!(order.voided || order.deleted || check.voided || check.deleted || (sel && sel.voided));\n    if (!voided && !closed) return; // wait until the check is paid/closed\n    events.push({ json: {\n      type: voided ? 'void' : 'redeem',\n      benefit,\n      benefitKind: cfg.BENEFIT_KINDS[benefit] || 'log',\n      mug,\n      customerGuid: cust.guid || '',\n      customerName, customerEmail: cust.email || '', customerPhone: cust.phone || '',\n      tabName: check.tabName || '',\n      period, businessDate: bd, businessDay,\n      orderGuid: order.guid,\n      checkGuid: check.guid,\n      selectionGuid: sel ? sel.guid : `${check.guid}-${guid}`,\n      itemName: sel ? (sel.displayName || '') : '',\n      source,\n      displayNumber: check.displayNumber || order.displayNumber || '',\n      testMode: !!order.createdInTestMode,\n    }});\n  };\n\n  for (const sel of check.selections || []) {\n    add(sel.item && sel.item.guid, sel, 'item');\n    for (const d of sel.appliedDiscounts || []) add(d.discount && d.discount.guid, sel, 'item_discount');\n  }\n  for (const d of check.appliedDiscounts || []) add(d.discount && d.discount.guid, null, 'check_discount');\n}\nreturn events;"
       },
-      "id": "994f42de-1760-42b0-9859-09fdee162333",
+      "id": "bea7cb08-6640-48fc-a840-69b5fde43170",
       "name": "Parse Toast Order",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -13072,
-        6016
+        -62720,
+        29488
       ]
     },
     {
@@ -68,14 +68,17 @@
         "jsonBody": "={{ JSON.stringify($json.searchBody) }}",
         "options": {}
       },
-      "id": "4f4dd199-8451-4f6a-8816-aa0430035634",
+      "id": "139ceb6c-efe7-4fa8-8727-fa91025ba77c",
       "name": "Find Member by Mug #",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -12480,
-        6016
+        -61728,
+        29488
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpHeaderAuth": {
           "id": "SehDVTutwS7XzjTn",
@@ -92,13 +95,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Decides what to do for one benefit event, using the member found in GHL.\n// action: update | note | alert | ignore\nconst cfg = $('Config').first().json;\nconst ev = { ...$('Build Search').item.json };\nlet contacts = $json.contacts || [];\n// Notes say how the member was found when the tab had no mug number\nconst out = (o) => ({ json: { ...ev, ...o,\n  ...(o.note && ev.matchedBy ? { note: ev.matchedBy === 'new member'\n    ? `${o.note} – new member created from Toast order (joins the Mug Club)`\n    : `${o.note} – matched by ${ev.matchedBy} (no mug number on tab)` } : {}) } });\nconst label = cfg.BENEFIT_LABELS[ev.benefit] || ev.benefit;\nconst alertText = (msg) =>\n  `[Craft Mountain perks] ${msg} | ${label} | tab \"${ev.tabName}\" | check #${ev.displayNumber} | business date ${ev.businessDay} | Toast order ${ev.orderGuid}`;\n\n// Member picked by \"Resolve Member\" (by mug number, email, phone, name, or created from the Toast guest)\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nev.matchedBy = $json.matchedBy || '';\nif (!ev.mug) {\n  if (contacts.length === 1) {\n    ev.mug = mugOf(contacts[0]); // empty for a member just created – workflow 4 assigns the number\n  } else if (contacts.length > 1) {\n    return ev.type === 'redeem'\n      ? out({ action: 'alert', alertType: 'ambiguous_name', alertText: alertText(`No mug number on the tab and ${contacts.length} members match \"${ev.tabName || ev.customerName}\" – add the mug number in GHL by hand`) })\n      : out({ action: 'ignore' });\n  } else {\n    return ev.type === 'redeem'\n      ? out({ action: 'alert', alertType: 'no_mug', alertText: alertText('Benefit rung up WITHOUT a mug number in the tab name (no member matched by name, email or phone)') })\n      : out({ action: 'ignore' });\n  }\n}\nif (contacts.length === 0) {\n  return ev.type === 'redeem'\n    ? out({ action: 'alert', alertType: 'no_member', alertText: alertText(`No member found with mug number ${ev.mug}`) })\n    : out({ action: 'ignore' });\n}\nif (contacts.length > 1) {\n  return out({ action: 'alert', alertType: 'duplicate_mug', alertText: alertText(`More than one member has mug number ${ev.mug} – fix in GHL`) });\n}\n\nconst c = contacts[0];\nconst name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.contactName || c.email || c.id;\nconst cf = {};\nfor (const f of c.customFields || []) cf[f.id] = f.value;\nconst val = (id) => {\n  const v = cf[id];\n  if (v === undefined || v === null) return '';\n  return Array.isArray(v) ? v.join(',') : String(v);\n};\nconst f = cfg.BENEFIT_FIELDS[ev.benefit] || {};\n// Mug Club members only. A guest found through the Toast guest lookup or by name (or just created) joins the club:\n// the perk is recorded and workflow 4 adds the member tag. A guest rung up by mug number alone is flagged.\nconst isMember = (c.tags || []).includes(cfg.MEMBER_TAG);\nconst enroll = !isMember && !!ev.matchedBy;\nif (!isMember && !enroll && ev.type === 'redeem') {\n  return out({ contactId: c.id, memberName: name, action: 'alert', alertType: 'not_member',\n    alertText: alertText(`${name} (mug ${ev.mug}) is not a Mug Club member – perk not recorded`) });\n}\nconst base = { contactId: c.id, memberName: name, memberFields: cf, enroll }; // memberFields: perk statuses before this update\n\n// ---- Monthly perks (free pour, 4-pack, merch, mug pricing) ----\nif (ev.benefitKind === 'monthly') {\n  const sameOrder = val(f.orderId) === ev.orderGuid;\n  if (ev.type === 'void') {\n    if (!sameOrder) return out({ ...base, action: 'ignore' });\n    return out({ ...base, action: 'update',\n      fieldUpdates: [\n        { id: f.status, field_value: 'Available' },\n        { id: f.period, field_value: '' },\n        { id: f.orderId, field_value: '' },\n      ],\n      note: `${label} REVERTED (voided in Toast) – period ${ev.period} – Toast order ${ev.orderGuid}` });\n  }\n  if (sameOrder) return out({ ...base, action: 'ignore' }); // Toast re-sent the same order\n  if (val(f.period) === ev.period && val(f.status) === 'Redeemed') {\n    return out({ ...base, action: 'alert', alertType: 'double',\n      alertText: alertText(`${name} (mug ${ev.mug}) already used ${label} for ${ev.period}`) });\n  }\n  return out({ ...base, action: 'update',\n    fieldUpdates: [\n      { id: f.period, field_value: ev.period },\n      { id: f.status, field_value: 'Redeemed' },\n      { id: f.date, field_value: ev.businessDay },\n      { id: f.orderId, field_value: ev.orderGuid },\n    ],\n    note: `${label} redeemed – period ${ev.period} – check #${ev.displayNumber} – Toast order ${ev.orderGuid}` });\n}\n\n// ---- One-time perks (initial member pour) ----\nif (ev.benefitKind === 'once') {\n  const sameOrder = val(f.orderId) === ev.orderGuid;\n  if (ev.type === 'void') {\n    if (!sameOrder) return out({ ...base, action: 'ignore' });\n    return out({ ...base, action: 'update',\n      fieldUpdates: [{ id: f.date, field_value: '' }, { id: f.orderId, field_value: '' }],\n      note: `${label} REVERTED (voided in Toast) – Toast order ${ev.orderGuid}` });\n  }\n  if (sameOrder) return out({ ...base, action: 'ignore' });\n  if (val(f.date)) {\n    return out({ ...base, action: 'alert', alertType: 'double',\n      alertText: alertText(`${name} (mug ${ev.mug}) already received the ${label} on ${val(f.date).slice(0, 10)}`) });\n  }\n  return out({ ...base, action: 'update',\n    fieldUpdates: [{ id: f.date, field_value: ev.businessDay }, { id: f.orderId, field_value: ev.orderGuid }],\n    note: `${label} redeemed – check #${ev.displayNumber} – Toast order ${ev.orderGuid}` });\n}\n\n// ---- Unlimited perks (member mug): log a note once per item ----\nif (ev.type === 'void') return out({ ...base, action: 'ignore' });\nconst seen = $getWorkflowStaticData('global');\nseen.logged = seen.logged || {};\nif (seen.logged[ev.selectionGuid]) return out({ ...base, action: 'ignore' });\nseen.logged[ev.selectionGuid] = Date.now();\nconst cutoff = Date.now() - 60 * 24 * 3600 * 1000; // keep 60 days\nfor (const k of Object.keys(seen.logged)) if (seen.logged[k] < cutoff) delete seen.logged[k];\nreturn out({ ...base, action: 'note',\n  note: `${label} used – check #${ev.displayNumber} – business date ${ev.businessDay} – Toast order ${ev.orderGuid}` });"
       },
-      "id": "f441aa29-0c27-43c0-bd0c-201abb133543",
+      "id": "49d6eb70-fff4-41dd-9871-ebd6fc49e076",
       "name": "Decide Action",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -11248,
-        6208
+        -60496,
+        29680
       ]
     },
     {
@@ -181,13 +184,13 @@
         },
         "options": {}
       },
-      "id": "1183d170-05ff-4c4a-b32a-5196a4e819b1",
+      "id": "3413236e-d6f3-45be-95ac-3ae7ae9527db",
       "name": "Route",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -10944,
-        6208
+        -60192,
+        29680
       ]
     },
     {
@@ -214,14 +217,17 @@
         "jsonBody": "={{ JSON.stringify({ customFields: $json.fieldUpdates }) }}",
         "options": {}
       },
-      "id": "04c4ae52-2b6a-49b8-8a56-7dd38008b389",
+      "id": "4d6a70af-ccf4-496a-944f-7428da9d07eb",
       "name": "Update Member Fields",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -10544,
-        6128
+        -59792,
+        29600
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpHeaderAuth": {
           "id": "SehDVTutwS7XzjTn",
@@ -257,14 +263,17 @@
         "jsonBody": "={{ JSON.stringify({ body: $('Decide Action').item.json.note }) }}",
         "options": {}
       },
-      "id": "b655955e-6442-47c0-94c1-98e3f2c53e66",
+      "id": "015259ff-02b4-4e97-b27c-3af2c57782ce",
       "name": "Add Note to Member",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -9920,
-        6224
+        -59168,
+        29696
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpHeaderAuth": {
           "id": "SehDVTutwS7XzjTn",
@@ -294,40 +303,43 @@
         "jsonBody": "={{ JSON.stringify({ text: $json.alertText, alertType: $json.alertType, benefit: $json.benefit, mug: $json.mug, tabName: $json.tabName, member: $json.memberName || '', checkNumber: $json.displayNumber, businessDay: $json.businessDay, toastOrderGuid: $json.orderGuid }) }}",
         "options": {}
       },
-      "id": "eea9d3b1-60f4-42e2-9cbc-ffda9e887ff0",
+      "id": "cd6315ac-e059-48f6-8c51-675f170d547a",
       "name": "Send Alert",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -10656,
-        6560
-      ]
+        -59904,
+        30032
+      ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "// Picks the member's pipeline stage from both monthly perk statuses (after this update).\nconst cfg = $('Config').first().json;\nconst ev = $('Decide Action').item.json;\nconst cf = { ...(ev.memberFields || {}) };\nfor (const u of ev.fieldUpdates || []) cf[u.id] = u.field_value;\nconst fp = cf[cfg.BENEFIT_FIELDS.free_pour.status] === 'Redeemed';\nconst fk = cf[cfg.BENEFIT_FIELDS.four_pack.status] === 'Redeemed';\nconst s = cfg.PIPELINE.stages;\nconst stageId = fp && fk ? s.all : fp ? s.free_pour : fk ? s.four_pack : s.available;\nreturn { json: { contactId: ev.contactId, name: `${ev.memberName} – Mug ${ev.mug}`, stageId } };"
       },
-      "id": "d519e5f2-29da-4476-92ed-1376d0459795",
+      "id": "19c750e3-51a8-4466-b029-17553e378016",
       "name": "Pick Stage",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -9648,
-        6224
+        -58896,
+        29696
       ]
     },
     {
       "parameters": {
         "jsCode": "// Double redemptions by a known member go to the \"Needs Review\" stage.\nconst cfg = $('Config').first().json;\nreturn $input.all()\n  .filter(i => i.json.alertType === 'double' && i.json.contactId)\n  .map(i => ({ json: { contactId: i.json.contactId, name: `${i.json.memberName} – Mug ${i.json.mug}`, stageId: cfg.PIPELINE.stages.review } }));"
       },
-      "id": "757a5680-beb5-4c92-90df-933cde6a63b5",
+      "id": "3211defa-0b17-41c6-8c8f-5f949b76ef1a",
       "name": "Pick Review Stage",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -10400,
-        6336
+        -59648,
+        29808
       ]
     },
     {
@@ -354,14 +366,17 @@
         "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, pipelineId: $('Config').first().json.PIPELINE.id, contactId: $json.contactId, pipelineStageId: $json.stageId, name: $json.name, status: 'open' }) }}",
         "options": {}
       },
-      "id": "1a12516f-0fa5-4774-bcc9-2f9c82801b5e",
+      "id": "1651eaf8-3828-465c-9ebd-1bb8953b3351",
       "name": "Move Pipeline Stage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -10128,
-        6464
+        -59376,
+        29936
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpBearerAuth": {
           "id": "02x3PFajRyULMOOr",
@@ -373,13 +388,13 @@
       "parameters": {
         "jsCode": "// One GHL \"Perk Log\" record per redemption, void, note or alert (Toast re-sends are skipped).\nconst labels = $('Config').first().json.BENEFIT_LABELS;\nconst EVENT_NAMES = { redeem: 'Redeemed', used: 'Used', void: 'Voided', double: 'Double use', no_member: 'Unknown mug', no_mug: 'No mug on tab', duplicate_mug: 'Duplicate mug', ambiguous_name: 'Name matches several members', not_member: 'Not a member' };\nreturn $input.all()\n  .filter(i => i.json.action !== 'ignore')\n  .map(({ json: e }) => {\n    const event = e.action === 'update' ? (e.type === 'void' ? 'void' : 'redeem') : e.action === 'note' ? 'used' : (e.alertType || 'alert');\n    const perk = labels[e.benefit] || e.benefit;\n    return { json: {\n      contactId: e.contactId || '',\n      properties: {\n        title: `#${e.mug || '–'} · ${perk} · ${EVENT_NAMES[event] || event}`,\n        logged_at: new Date().toISOString(),\n        business_day: e.businessDay || '',\n        mug: e.mug || '',\n        member: e.memberName || '',\n        perk,\n        event,\n        toast_order_id: e.orderGuid || '',\n        check_number: String(e.displayNumber || ''),\n        detail: e.alertText || e.note || '',\n      },\n    } };\n  });"
       },
-      "id": "bf83db73-51a2-44e2-a99f-089aafde9ce7",
+      "id": "4f8d10c6-7abe-4c26-8b6e-d62372242089",
       "name": "Build Log Row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -10640,
-        5936
+        -59888,
+        29408
       ]
     },
     {
@@ -406,14 +421,17 @@
         "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, properties: $json.properties }) }}",
         "options": {}
       },
-      "id": "0c6d99af-acbc-4958-b377-15b7076df3a5",
+      "id": "97feaf4d-dcdf-40c4-9e8a-56fdef037b07",
       "name": "Create Perk Log",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -10416,
-        5936
+        -59664,
+        29408
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpBearerAuth": {
           "id": "02x3PFajRyULMOOr",
@@ -425,13 +443,13 @@
       "parameters": {
         "jsCode": "// Alerts without a known member (no mug / unknown mug) are logged but not linked.\nconst rows = $('Build Log Row').all();\nreturn $input.all()\n  .map((item, i) => ({ json: { recordId: (item.json.record || item.json).id, contactId: rows.at(i).json.contactId } }))\n  .filter(i => i.json.recordId && i.json.contactId);"
       },
-      "id": "9f8cdf18-0ea8-4a1c-9b47-8c23e05bb41f",
+      "id": "d88df428-e407-410c-8f8c-8659b51cdd0e",
       "name": "Pick Member Links",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -10208,
-        5936
+        -59456,
+        29408
       ]
     },
     {
@@ -458,14 +476,17 @@
         "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, associationId: '6abce7b37670f69e4ea03353', firstRecordId: $json.contactId, secondRecordId: $json.recordId }) }}",
         "options": {}
       },
-      "id": "46a24168-43c9-42aa-a8ca-e3c143ff3c9c",
+      "id": "c649d786-772e-4ecd-9e6f-5e8d3962070d",
       "name": "Link to Member",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -9968,
-        5936
+        -59216,
+        29408
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpBearerAuth": {
           "id": "02x3PFajRyULMOOr",
@@ -498,13 +519,13 @@
         },
         "options": {}
       },
-      "id": "34adf4db-15ba-4fd9-9bad-6d7b2cf1128b",
+      "id": "3f9a4864-9951-4f92-8a3d-a10870736d6e",
       "name": "Guest Lookup Needed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -12880,
-        6016
+        -62128,
+        29488
       ]
     },
     {
@@ -524,13 +545,13 @@
         },
         "options": {}
       },
-      "id": "e01a45b3-a87a-49a0-b2dc-c95fb7c8e15e",
+      "id": "02ed91a5-1dd7-4ef7-8095-0b28e10dc86e",
       "name": "Toast Login",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -12672,
-        5808
+        -61920,
+        29280
       ],
       "credentials": {
         "httpCustomAuth": {
@@ -558,13 +579,13 @@
         },
         "options": {}
       },
-      "id": "6c2520b7-76d4-42dd-82a8-2396e3c852da",
+      "id": "c40d5a56-5e79-4894-9fad-a31af491c98d",
       "name": "Get Toast Order",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -12448,
-        5808
+        -61696,
+        29280
       ],
       "onError": "continueRegularOutput"
     },
@@ -573,13 +594,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Adds the guest's name / email / phone from the full Toast order (empty if the lookup failed).\nconst ev = { ...$('Guest Lookup Needed?').item.json };\nconst check = ($json.checks || []).find(c => c.guid === ev.checkGuid) || {};\nconst cust = check.customer || {};\nev.customerEmail = cust.email || '';\nev.customerPhone = cust.phone || '';\nev.customerFirstName = cust.firstName || '';\nev.customerLastName = cust.lastName || '';\nev.customerName = [cust.firstName, cust.lastName].filter(Boolean).join(' ');\nreturn { json: ev };"
       },
-      "id": "14980252-9cc9-462c-9417-ef452755d4f3",
+      "id": "bb24d323-4371-411a-97ca-9f3f2fffadfa",
       "name": "Add Guest Details",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -12224,
-        5808
+        -61472,
+        29280
       ]
     },
     {
@@ -587,27 +608,27 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// GHL search for the member: exact mug number, or (no mug) members matching email, phone or name.\nconst cfg = $('Config').first().json;\nconst ev = $json;\nconst mugFilter = (operator, value) => ({ field: 'customFields.' + cfg.FIELD_IDS.mugNumber, operator, ...(value ? { value } : {}) });\nconst query = ev.mug ? '' : (ev.customerEmail || ev.customerPhone || String(ev.tabName || '').trim() || ev.customerName);\nconst searchBody = ev.mug\n  ? { locationId: cfg.LOCATION_ID, page: 1, pageLimit: 5, filters: [mugFilter('eq', ev.mug)] }\n  : query\n    ? { locationId: cfg.LOCATION_ID, page: 1, pageLimit: 10, query, filters: [mugFilter('exists')] }\n    : { locationId: cfg.LOCATION_ID, page: 1, pageLimit: 1, filters: [mugFilter('eq', `no-mug-${ev.orderGuid}`)] };\nreturn { json: { ...ev, searchBody } };"
       },
-      "id": "0e81907f-1c8c-41cb-ba20-b4741263380e",
+      "id": "6e2578e1-8de5-4f4c-88ec-20f2f2991565",
       "name": "Build Search",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -12672,
-        6016
+        -61920,
+        29488
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Picks the member for this event and decides whether GHL needs a new contact or missing details.\n// saveAction: create (no member matched, Toast guest has email/phone) | update (fill empty email/phone) | none\nconst cfg = $('Config').first().json;\nconst ev = $('Build Search').item.json;\nconst found = $json.contacts || [];\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst words = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);\nconst fullName = (s) => { const w = words(s); return w.length >= 2 ? w.sort().join(' ') : ''; }; // first name alone never matches\nconst phone10 = (s) => String(s || '').replace(/\\D/g, '').slice(-10);\nconst hasPhone = phone10(ev.customerPhone).length === 10;\nconst matchOf = (c) => {\n  if (ev.customerEmail && String(c.email || '').toLowerCase() === ev.customerEmail.toLowerCase()) return 'email';\n  if (hasPhone && phone10(c.phone) === phone10(ev.customerPhone)) return 'phone';\n  const member = fullName(`${c.firstName || ''} ${c.lastName || ''}`);\n  if (member && (member === fullName(ev.tabName) || member === fullName(ev.customerName))) return 'name';\n  return '';\n};\nconst none = { saveAction: 'none', saveBody: {} };\nif (ev.mug) return { json: { contacts: found, matchedBy: '', ...none } };\n\nconst hits = found.filter(c => mugOf(c) && matchOf(c));\nif (hits.length === 1) {\n  // Fill in email / phone the member is missing in GHL (never overwrite)\n  const c = hits[0];\n  const saveBody = {};\n  if (ev.customerEmail && !c.email) saveBody.email = ev.customerEmail;\n  if (hasPhone && !c.phone) saveBody.phone = ev.customerPhone;\n  return { json: { contacts: hits, matchedBy: matchOf(c), contactId: c.id,\n    ...(Object.keys(saveBody).length ? { saveAction: 'update', saveBody } : none) } };\n}\nif (hits.length > 1) return { json: { contacts: hits, matchedBy: '', ...none } };\n\n// No member: create one from the Toast guest (only with an email or phone, never from a name alone)\nif (ev.type === 'redeem' && (ev.customerEmail || hasPhone)) {\n  return { json: { contacts: [], matchedBy: 'new member', saveAction: 'create', saveBody: {\n    locationId: cfg.LOCATION_ID,\n    firstName: ev.customerFirstName || '',\n    lastName: ev.customerLastName || '',\n    ...(ev.customerEmail ? { email: ev.customerEmail } : {}),\n    ...(hasPhone ? { phone: ev.customerPhone } : {}),\n    source: 'Toast order',\n    tags: ['toast-guest'],\n  } } };\n}\nreturn { json: { contacts: [], matchedBy: '', ...none } };"
+        "jsCode": "// Picks the member for this event and decides whether GHL needs a new contact or missing details.\n// saveAction: create (no member matched, Toast guest has email/phone) | update (fill empty email/phone) | none\nconst cfg = $('Config').first().json;\nconst ev = $('Build Search').item.json;\nconst found = $json.contacts || [];\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst words = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);\nconst fullName = (s) => { const w = words(s); return w.length >= 2 ? w.sort().join(' ') : ''; }; // first name alone never matches\nconst phone10 = (s) => String(s || '').replace(/\\D/g, '').slice(-10);\nconst hasPhone = phone10(ev.customerPhone).length === 10;\nconst matchOf = (c) => {\n  if (ev.customerEmail && String(c.email || '').toLowerCase() === ev.customerEmail.toLowerCase()) return 'email';\n  if (hasPhone && phone10(c.phone) === phone10(ev.customerPhone)) return 'phone';\n  const member = fullName(`${c.firstName || ''} ${c.lastName || ''}`);\n  if (member && (member === fullName(ev.tabName) || member === fullName(ev.customerName))) return 'name';\n  return '';\n};\nconst none = { saveAction: 'none', saveBody: {} };\nif (ev.mug) return { json: { contacts: found, matchedBy: '', ...none } };\n\nconst hits = found.filter(c => mugOf(c) && matchOf(c));\nif (hits.length === 1) {\n  // Fill in email / phone the member is missing in GHL (never overwrite)\n  const c = hits[0];\n  const saveBody = {};\n  if (ev.customerEmail && !c.email) saveBody.email = ev.customerEmail;\n  if (hasPhone && !c.phone) saveBody.phone = ev.customerPhone;\n  return { json: { contacts: hits, matchedBy: matchOf(c), contactId: c.id,\n    ...(Object.keys(saveBody).length ? { saveAction: 'update', saveBody } : none) } };\n}\nif (hits.length > 1) return { json: { contacts: hits, matchedBy: '', ...none } };\n\n// No member: create one from the Toast guest (only with an email or phone, never from a name alone)\nif (ev.type === 'redeem' && (ev.customerEmail || hasPhone)) {\n  return { json: { contacts: [], matchedBy: 'new member', saveAction: 'create', saveBody: {\n    locationId: cfg.LOCATION_ID,\n    firstName: ev.customerFirstName || '',\n    lastName: ev.customerLastName || '',\n    ...(ev.customerEmail ? { email: ev.customerEmail } : {}),\n    ...(hasPhone ? { phone: ev.customerPhone } : {}),\n    source: 'Toast order',\n    // no tags here: GHL upsert replaces ALL tags, which would remove mug-club-member from an existing contact.\n    // Workflow 4 adds mug-club-member + mug-assigned (without touching other tags).\n  } } };\n}\nreturn { json: { contacts: [], matchedBy: '', ...none } };"
       },
-      "id": "daba6187-5446-46f9-b6e6-9cb789f108e1",
+      "id": "b888657e-4a9d-4998-a4e8-08e311c0a75c",
       "name": "Resolve Member",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -12224,
-        6016
+        -61472,
+        29488
       ]
     },
     {
@@ -635,13 +656,13 @@
         },
         "options": {}
       },
-      "id": "5d8e5bab-05ac-4980-9d07-1a337e1f2048",
+      "id": "f401b4a7-fcc5-4a7f-849e-ba1538b2f361",
       "name": "Save Guest to GHL?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -12032,
-        6016
+        -61280,
+        29488
       ]
     },
     {
@@ -668,14 +689,17 @@
         "jsonBody": "={{ JSON.stringify($json.saveBody) }}",
         "options": {}
       },
-      "id": "5919011c-90eb-4bf8-b89e-95416a8a8dcb",
+      "id": "e71ddb05-5164-4be0-a9fc-f9977d747310",
       "name": "Save Contact",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -11840,
-        6000
+        -61088,
+        29472
       ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpBearerAuth": {
           "id": "02x3PFajRyULMOOr",
@@ -688,13 +712,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Created contact becomes the member for this event; updated members keep their search data.\nconst r = $('Save Guest to GHL?').item.json;\nif (r.saveAction !== 'create') return { json: r };\nconst contact = $json.contact || {};\nreturn { json: { ...r, contacts: contact.id ? [contact] : [], contactId: contact.id, newMember: !!contact.id } };"
       },
-      "id": "be757639-dc28-4785-9c3d-37b53bc7f0be",
+      "id": "5a381d9b-e738-4019-a1bd-4cf3c433468b",
       "name": "Use Saved Contact",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -11632,
-        6000
+        -60880,
+        29472
       ]
     },
     {
@@ -722,13 +746,13 @@
         },
         "options": {}
       },
-      "id": "98b5576f-1329-4f3e-95f0-9e9caafaa46f",
+      "id": "342baf91-aede-45b4-9e88-109855ca9428",
       "name": "Enroll Member?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2112,
-        160
+        -59760,
+        30304
       ]
     },
     {
@@ -740,15 +764,69 @@
         "jsonBody": "={{ JSON.stringify({ contact_id: $json.contactId, source: \"toast-order\" }) }}",
         "options": {}
       },
-      "id": "3c2ded92-300c-4be0-a3d5-05fdf21f35b8",
+      "id": "56501f97-09fb-4849-990b-4caecb05369d",
       "name": "Start New Member Flow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1872,
-        80
+        -59520,
+        30224
       ],
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/objects/{{ $('Config').first().json.EVENT_LOCK_OBJECT }}/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, properties: { event_key: [$json.orderGuid, $json.selectionGuid, $json.type].join('|') } }) }}",
+        "options": {}
+      },
+      "id": "dfe605fe-56e1-4abd-98cc-db7c9a79ed7a",
+      "name": "Claim Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -62544,
+        29488
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Event claimed (or the lock itself failed for another reason): continue with the event.\n// A duplicate claim means another run already has this event: stop here.\nconst err = JSON.stringify($json.error || '');\nif (/duplicate|unique|already exist/i.test(err)) return null;\nreturn { json: $('Parse Toast Order').item.json };"
+      },
+      "id": "3af6266e-7456-4b2a-ba09-1be3d21efa82",
+      "name": "First Time?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -62320,
+        29488
+      ]
     }
   ],
   "connections": {
@@ -778,7 +856,7 @@
       "main": [
         [
           {
-            "node": "Guest Lookup Needed?",
+            "node": "Claim Event",
             "type": "main",
             "index": 0
           }
@@ -1045,8 +1123,36 @@
             "type": "main",
             "index": 0
           }
+        ]
+      ]
+    },
+    "Claim Event": {
+      "main": [
+        [
+          {
+            "node": "First Time?",
+            "type": "main",
+            "index": 0
+          }
         ],
-        []
+        [
+          {
+            "node": "First Time?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "First Time?": {
+      "main": [
+        [
+          {
+            "node": "Guest Lookup Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

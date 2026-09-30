@@ -194,7 +194,14 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: $json.pageLimit, filters: [ { field: 'customFields.' + $('Config').first().json.MUG_FIELD, operator: 'exists' } ] }) }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "id": "296ce451-8908-4241-b39e-99b9b6f24de1",
       "name": "Find Members",
@@ -209,7 +216,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -317,7 +327,14 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ locationId: 'XTpY4DQ6CrYVvesFdX3K', page: $json.page, pageLimit: $json.pageLimit, query: '' }) }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "id": "083f8f94-2b06-40d0-9a2a-ceb9c0b8ec59",
       "name": "Search Perk Logs",
@@ -332,7 +349,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -369,7 +389,14 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ locationId: 'XTpY4DQ6CrYVvesFdX3K', page: $json.page, pageLimit: $json.pageLimit, query: '' }) }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "id": "79c8b9ba-8968-493d-bf79-de3728dd1562",
       "name": "Search Reminder Logs",
@@ -384,7 +411,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {

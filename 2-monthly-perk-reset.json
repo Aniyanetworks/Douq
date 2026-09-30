@@ -69,7 +69,8 @@
         "options": {
           "batching": {
             "batch": {
-              "batchSize": 5
+              "batchSize": 5,
+              "batchInterval": 1000
             }
           }
         }
@@ -91,7 +92,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -153,7 +157,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -205,7 +212,10 @@
           "id": "02x3PFajRyULMOOr",
           "name": "Douq GHL"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
