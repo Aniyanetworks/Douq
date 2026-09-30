@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getLog, AuthError } from './api.js';
+import { getLog, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
@@ -12,7 +12,8 @@ export default function MemberLog({ pin, member, onClose, onAuthError }) {
 
   useEffect(() => {
     let live = true;
-    setRows(null);
+    const cached = readCache(cacheKey.log(rangeFrom(range), todayYmd()));
+    setRows(cached ? (cached.data.log || []).filter((r) => sameMug(r.mug, member.mug)) : null);
     setError('');
     getLog(pin, rangeFrom(range), todayYmd())
       .then((res) => live && setRows((res.log || []).filter((r) => sameMug(r.mug, member.mug))))

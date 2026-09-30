@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { DEMO } from './api.js';
+import { DEMO, clearCache } from './api.js';
 import Login from './Login.jsx';
 import Members from './Members.jsx';
 import Log from './Log.jsx';
@@ -26,7 +26,7 @@ export default function App() {
   const [tab, setTab] = useState('members');
 
   const unlock = (p) => { writePin(p); setPin(p); };
-  const lock = useCallback(() => { writePin(''); setPin(''); }, []);
+  const lock = useCallback(() => { clearCache(); writePin(''); setPin(''); }, []);
 
   if (!pin) return <Login onUnlock={unlock} />;
   const { Page } = TABS.find((t) => t.key === tab);

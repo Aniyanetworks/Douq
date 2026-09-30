@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getReminders, AuthError } from './api.js';
+import { getReminders, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import { kindTone } from './MemberReminders.jsx';
@@ -36,7 +36,12 @@ export default function Reminders({ pin, onAuthError }) {
     }
   }, [pin, from, to, onAuthError]);
 
-  useEffect(() => { load(); }, [load]);
+  // Show the cached reminders for these dates at once, then refresh them
+  useEffect(() => {
+    const cached = readCache(cacheKey.reminders(from, to));
+    setRows(cached ? cached.data.reminders || [] : null);
+    load();
+  }, [load, from, to]);
 
   const kinds = useMemo(() => [...new Set((rows || []).map((r) => r.kind).filter(Boolean))].sort(), [rows]);
 

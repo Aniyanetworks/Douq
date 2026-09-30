@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getReminders, AuthError } from './api.js';
+import { getReminders, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
@@ -14,7 +14,8 @@ export default function MemberReminders({ pin, member, onClose, onAuthError }) {
 
   useEffect(() => {
     let live = true;
-    setRows(null);
+    const cached = readCache(cacheKey.reminders(rangeFrom(range), todayYmd()));
+    setRows(cached ? (cached.data.reminders || []).filter((r) => sameMug(r.mug, member.mug)) : null);
     setError('');
     getReminders(pin, rangeFrom(range), todayYmd())
       .then((res) => live && setRows((res.reminders || []).filter((r) => sameMug(r.mug, member.mug))))

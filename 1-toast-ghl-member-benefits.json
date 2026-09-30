@@ -318,7 +318,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Picks the member's pipeline stage from both monthly perk statuses (after this update).\nconst cfg = $('Config').first().json;\nconst ev = $('Decide Action').item.json;\nconst cf = { ...(ev.memberFields || {}) };\nfor (const u of ev.fieldUpdates || []) cf[u.id] = u.field_value;\nconst fp = cf[cfg.BENEFIT_FIELDS.free_pour.status] === 'Redeemed';\nconst fk = cf[cfg.BENEFIT_FIELDS.four_pack.status] === 'Redeemed';\nconst s = cfg.PIPELINE.stages;\nconst stageId = fp && fk ? s.all : fp ? s.free_pour : fk ? s.four_pack : s.available;\nreturn { json: { contactId: ev.contactId, name: `${ev.memberName} – Mug ${ev.mug}`, stageId } };"
+        "jsCode": "// Picks the member's pipeline stage from both monthly perk statuses (after this update).\nconst cfg = $('Config').first().json;\nconst ev = $('Ready').item.json; // includes the mug number of a just-enrolled member\nconst cf = { ...(ev.memberFields || {}) };\nfor (const u of ev.fieldUpdates || []) cf[u.id] = u.field_value;\nconst fp = cf[cfg.BENEFIT_FIELDS.free_pour.status] === 'Redeemed';\nconst fk = cf[cfg.BENEFIT_FIELDS.four_pack.status] === 'Redeemed';\nconst s = cfg.PIPELINE.stages;\nconst stageId = fp && fk ? s.all : fp ? s.free_pour : fk ? s.four_pack : s.available;\nreturn { json: { contactId: ev.contactId, name: `${ev.memberName} – Mug ${ev.mug}`, stageId } };"
       },
       "id": "19c750e3-51a8-4466-b029-17553e378016",
       "name": "Pick Stage",
@@ -827,6 +827,20 @@
         -62320,
         29488
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// The event after enrollment: a member created from a Toast order now carries the mug number from workflow 4.\nconst ev = $('Decide Action').item.json;\nconst mug = $json && $json.mug ? String($json.mug) : ev.mug;\nreturn { json: { ...ev, mug } };"
+      },
+      "id": "ac2553dd-d2b8-4cbf-a86e-6bfeb22bc3a0",
+      "name": "Ready",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60272,
+        29280
+      ]
     }
   ],
   "connections": {
@@ -877,16 +891,6 @@
     "Decide Action": {
       "main": [
         [
-          {
-            "node": "Route",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Build Log Row",
-            "type": "main",
-            "index": 0
-          },
           {
             "node": "Enroll Member?",
             "type": "main",
@@ -1123,6 +1127,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Ready",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1149,6 +1160,33 @@
         [
           {
             "node": "Guest Lookup Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start New Member Flow": {
+      "main": [
+        [
+          {
+            "node": "Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ready": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Log Row",
             "type": "main",
             "index": 0
           }

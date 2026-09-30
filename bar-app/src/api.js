@@ -16,9 +16,52 @@ async function call(action, pin, extra = {}) {
   return res.json();
 }
 
-export const getMembers = (pin) => call('members', pin);
-export const getLog = (pin, from, to) => call('log', pin, { from, to });
-export const getReminders = (pin, from, to) => call('reminders', pin, { from, to });
+// ---------- browser cache ----------
+// Last answer per request, shown instantly on tab switches and page reloads while a fresh copy loads.
+// Kept in memory and in localStorage; "Lock" clears it so member data does not stay on a shared tablet.
+const CACHE_PREFIX = 'mugclub-cache:';
+const memory = new Map();
+
+export const cacheKey = {
+  members: () => 'members',
+  log: (from, to) => `log:${from}:${to}`,
+  reminders: (from, to) => `reminders:${from}:${to}`,
+};
+
+export function readCache(key) {
+  if (memory.has(key)) return memory.get(key);
+  try {
+    const saved = JSON.parse(localStorage.getItem(CACHE_PREFIX + key));
+    if (saved) memory.set(key, saved);
+    return saved || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key, data) {
+  const entry = { at: Date.now(), data };
+  memory.set(key, entry);
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(entry));
+  } catch {
+    // storage full or blocked: the in-memory copy still works for tab switches
+  }
+  return data;
+}
+
+export function clearCache() {
+  memory.clear();
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith(CACHE_PREFIX)).forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // storage blocked: nothing saved
+  }
+}
+
+export const getMembers = async (pin) => writeCache(cacheKey.members(), await call('members', pin));
+export const getLog = async (pin, from, to) => writeCache(cacheKey.log(from, to), await call('log', pin, { from, to }));
+export const getReminders = async (pin, from, to) => writeCache(cacheKey.reminders(from, to), await call('reminders', pin, { from, to }));
 
 // ---------- demo data ----------
 const DEMO_PIN = '1234';

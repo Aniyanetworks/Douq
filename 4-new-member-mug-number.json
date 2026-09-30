@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "new-member",
-        "responseMode": "onReceived",
+        "responseMode": "responseNode",
         "options": {}
       },
       "id": "61e65892-bb31-476f-8e54-498ac0e8dccc",
@@ -294,12 +294,27 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2016,
+        2240,
         300
       ],
       "retryOnFail": true,
       "maxTries": 4,
       "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ contactId: $('Pick Mug Number').item.json.contactId, mug: $('Pick Mug Number').item.json.mug }) }}",
+        "options": {}
+      },
+      "id": "939937a9-43ff-40ee-96d8-e988056e207d",
+      "name": "Send Mug Number",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        300
+      ]
     }
   ],
   "connections": {
@@ -392,6 +407,17 @@
       ]
     },
     "Tag Member": {
+      "main": [
+        [
+          {
+            "node": "Send Mug Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mug Number": {
       "main": [
         [
           {

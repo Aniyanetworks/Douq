@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getLog, AuthError } from './api.js';
+import { getLog, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, eventInfo, isAlert, todayYmd, EVENTS } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberLog from './MemberLog.jsx';
@@ -38,7 +38,12 @@ export default function Log({ pin, onAuthError }) {
     }
   }, [pin, from, to, onAuthError]);
 
-  useEffect(() => { load(); }, [load]);
+  // Show the cached log for these dates at once, then refresh it
+  useEffect(() => {
+    const cached = readCache(cacheKey.log(from, to));
+    setRows(cached ? cached.data.log || [] : null);
+    load();
+  }, [load, from, to]);
 
   const perks = useMemo(() => [...new Set((rows || []).map((r) => r.perk).filter(Boolean))].sort(), [rows]);
 
@@ -129,7 +134,7 @@ export default function Log({ pin, onAuthError }) {
                         <button className="link" onClick={() => setSelected({ mug: r.mug, name: r.member })}>
                           {r.member || `Mug #${r.mug}`}
                         </button>
-                      ) : '–'}
+                      ) : (r.member || '–')}
                     </td>
                     <td>{r.perk}</td>
                     <td><span className={`badge ${ev.tone}`}>{ev.label}</span></td>

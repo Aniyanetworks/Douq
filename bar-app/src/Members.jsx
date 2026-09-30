@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getMembers, AuthError } from './api.js';
+import { getMembers, AuthError, readCache, cacheKey } from './api.js';
 import { clock, monthName, shortDay } from './format.js';
 import { MemberCardsSkeleton } from './Skeleton.jsx';
 import MemberLog from './MemberLog.jsx';
@@ -26,7 +26,8 @@ const SORTS = {
 };
 
 export default function Members({ pin, onAuthError }) {
-  const [data, setData] = useState(null);
+  // Last list from this browser shows instantly; a fresh copy loads in the background
+  const [data, setData] = useState(() => readCache(cacheKey.members())?.data ?? null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
