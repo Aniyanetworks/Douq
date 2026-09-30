@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getMembers, AuthError } from './api.js';
 import { clock, monthName, shortDay } from './format.js';
 import { MemberCardsSkeleton } from './Skeleton.jsx';
@@ -13,15 +13,25 @@ const SmsIcon = () => (
 );
 
 const REFRESH_MS = 60_000;
+const PAGE_SIZE = 24;
 
 // "37", "037", "#037" and "Mug 37" all mean mug 37
 const mugDigits = (s) => String(s).replace(/\D/g, '').replace(/^0+/, '');
+const mugNumber = (m) => Number(mugDigits(m.mug)) || 0;
+
+const SORTS = {
+  'mug-asc': { label: 'Mug # (low → high)', compare: (a, b) => mugNumber(a) - mugNumber(b) },
+  'mug-desc': { label: 'Mug # (high → low)', compare: (a, b) => mugNumber(b) - mugNumber(a) },
+  name: { label: 'Name (A → Z)', compare: (a, b) => a.name.localeCompare(b.name) || mugNumber(a) - mugNumber(b) },
+};
 
 export default function Members({ pin, onAuthError }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('mug-asc');
+  const [shown, setShown] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState(null);
   const closeLog = useCallback(() => setSelected(null), []);
   const [remindersFor, setRemindersFor] = useState(null);
@@ -49,17 +59,36 @@ export default function Members({ pin, onAuthError }) {
   const members = useMemo(() => {
     const list = data?.members || [];
     const q = query.trim().toLowerCase();
-    if (!q) return list;
-    const digits = mugDigits(q);
-    const byMug = /^\s*(mug)?\s*#?\s*\d+\s*$/i.test(q);
-    if (byMug) return list.filter((m) => mugDigits(m.mug) === digits);
-    const phoneDigits = q.replace(/\D/g, '');
-    return list.filter((m) =>
-      m.name.toLowerCase().includes(q) ||
-      m.email.toLowerCase().includes(q) ||
-      (phoneDigits && m.phone.replace(/\D/g, '').includes(phoneDigits)),
-    );
-  }, [data, query]);
+    let found = list;
+    if (q) {
+      const digits = mugDigits(q);
+      const byMug = /^\s*(mug)?\s*#?\s*\d+\s*$/i.test(q);
+      const phoneDigits = q.replace(/\D/g, '');
+      found = byMug
+        ? list.filter((m) => mugDigits(m.mug) === digits)
+        : list.filter((m) =>
+          m.name.toLowerCase().includes(q) ||
+          m.email.toLowerCase().includes(q) ||
+          (phoneDigits && m.phone.replace(/\D/g, '').includes(phoneDigits)));
+    }
+    return [...found].sort(SORTS[sort].compare);
+  }, [data, query, sort]);
+
+  // A new search or sort starts again from the first page
+  useEffect(() => { setShown(PAGE_SIZE); }, [query, sort]);
+  const visible = members.slice(0, shown);
+  const hasMore = visible.length < members.length;
+  const loadMore = useCallback(() => setShown((n) => n + PAGE_SIZE), []);
+
+  // Infinite scroll: load the next page when the bottom of the list comes near the screen
+  const sentinel = useRef(null);
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && loadMore(), { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loadMore, visible.length]);
 
   return (
     <section>
@@ -73,6 +102,9 @@ export default function Members({ pin, onAuthError }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <select className="sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort members">
+          {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
+        </select>
         <button onClick={load} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
       </div>
 
@@ -91,7 +123,7 @@ export default function Members({ pin, onAuthError }) {
       )}
 
       <div className={loading && data ? 'cards refreshing' : 'cards'}>
-        {members.map((m) => (
+        {visible.map((m) => (
           <article
             key={m.mug + m.name}
             className="card clickable"
@@ -140,6 +172,17 @@ export default function Members({ pin, onAuthError }) {
           </article>
         ))}
       </div>
+
+      {members.length > 0 && (
+        <div className="load-more" ref={sentinel}>
+          <span>Showing {visible.length} of {members.length}</span>
+          {hasMore && (
+            <button onClick={loadMore}>
+              Load {Math.min(PAGE_SIZE, members.length - visible.length)} more
+            </button>
+          )}
+        </div>
+      )}
 
       {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} />}
       {remindersFor && <MemberReminders pin={pin} member={remindersFor} onClose={closeReminders} onAuthError={onAuthError} />}
