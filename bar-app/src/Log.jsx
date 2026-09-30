@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLog, AuthError } from './api.js';
 import { dateTime, eventInfo, isAlert, todayYmd, EVENTS } from './format.js';
+import { LogRowsSkeleton } from './Skeleton.jsx';
+import MemberLog from './MemberLog.jsx';
 
 const firstOfMonth = () => `${todayYmd().slice(0, 8)}01`;
 
@@ -19,6 +21,8 @@ export default function Log({ pin, onAuthError }) {
   const [event, setEvent] = useState('all');
   const [perk, setPerk] = useState('all');
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
+  const closeLog = useCallback(() => setSelected(null), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,6 +97,8 @@ export default function Log({ pin, onAuthError }) {
 
       {error && <p className="error">{error}</p>}
 
+      {!rows && !error && <LogRowsSkeleton />}
+
       {rows && (
         <div className="summary">
           {Object.entries(summary.redeemed).map(([p, n]) => (
@@ -106,7 +112,7 @@ export default function Log({ pin, onAuthError }) {
       {rows && shown.length === 0 && <div className="empty">Nothing logged for these filters.</div>}
 
       {shown.length > 0 && (
-        <div className="table-wrap">
+        <div className={loading ? 'table-wrap refreshing' : 'table-wrap'}>
           <table>
             <thead>
               <tr><th>Time</th><th>Mug</th><th>Member</th><th>Perk</th><th>Event</th><th>Check</th><th>Detail</th></tr>
@@ -118,7 +124,13 @@ export default function Log({ pin, onAuthError }) {
                   <tr key={`${r.orderId}-${r.loggedAt}-${i}`}>
                     <td className="nowrap">{dateTime(r.loggedAt)}</td>
                     <td>{r.mug ? `#${r.mug}` : '–'}</td>
-                    <td>{r.member || '–'}</td>
+                    <td>
+                      {r.mug ? (
+                        <button className="link" onClick={() => setSelected({ mug: r.mug, name: r.member })}>
+                          {r.member || `Mug #${r.mug}`}
+                        </button>
+                      ) : '–'}
+                    </td>
                     <td>{r.perk}</td>
                     <td><span className={`badge ${ev.tone}`}>{ev.label}</span></td>
                     <td>{r.checkNumber ? `#${r.checkNumber}` : ''}</td>
@@ -130,6 +142,8 @@ export default function Log({ pin, onAuthError }) {
           </table>
         </div>
       )}
+
+      {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} />}
     </section>
   );
 }

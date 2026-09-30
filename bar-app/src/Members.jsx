@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getMembers, AuthError } from './api.js';
 import { clock, monthName, shortDay } from './format.js';
+import { MemberCardsSkeleton } from './Skeleton.jsx';
+import MemberLog from './MemberLog.jsx';
 
 const REFRESH_MS = 60_000;
 
@@ -12,6 +14,8 @@ export default function Members({ pin, onAuthError }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
+  const closeLog = useCallback(() => setSelected(null), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +71,8 @@ export default function Members({ pin, onAuthError }) {
       </p>
       {error && <p className="error">{error}</p>}
 
+      {!data && !error && <MemberCardsSkeleton />}
+
       {data && members.length === 0 && (
         <div className="empty">
           No member found{query ? <> for “{query}”</> : ''}.
@@ -74,9 +80,21 @@ export default function Members({ pin, onAuthError }) {
         </div>
       )}
 
-      <div className="cards">
+      <div className={loading && data ? 'cards refreshing' : 'cards'}>
         {members.map((m) => (
-          <article key={m.mug + m.name} className="card">
+          <article
+            key={m.mug + m.name}
+            className="card clickable"
+            role="button"
+            tabIndex={0}
+            aria-label={`Mug ${m.mug} ${m.name} – view history`}
+            onClick={() => setSelected(m)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              setSelected(m);
+            }}
+          >
             <div className="card-head">
               <div className="mug">#{m.mug}</div>
               <div>
@@ -92,12 +110,17 @@ export default function Members({ pin, onAuthError }) {
                 </li>
               ))}
             </ul>
-            <div className="initial">
-              Initial Member Pour: {m.initialPour ? <b>received {shortDay(m.initialPour)}</b> : <b className="ok">not yet</b>}
+            <div className="card-foot">
+              <span className="initial">
+                Initial Member Pour: {m.initialPour ? <b>received {shortDay(m.initialPour)}</b> : <b className="ok">not yet</b>}
+              </span>
+              <span className="history-link">History ›</span>
             </div>
           </article>
         ))}
       </div>
+
+      {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} />}
     </section>
   );
 }
