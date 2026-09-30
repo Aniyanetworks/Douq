@@ -1,1 +1,5 @@
 Douq.pdf
+
+# Customer data – never commit
+*.csv
+!bar-app/**/*.csv

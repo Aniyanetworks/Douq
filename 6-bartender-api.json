@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  MEMBER_TAG: 'mug-club-member',     // only Mug Club members are listed\n  MEMBER_CACHE_SECONDS: 60, // all tablets share one GHL read per minute\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
       },
       "id": "6505dbac-7c6f-4631-be57-f33cd76be673",
       "name": "Config",
@@ -161,14 +161,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// One search request per page of members with a mug number.\nconst items = [];\nfor (let page = 1; page <= 10; page++) items.push({ json: { page, pageLimit: 100 } }); // up to 1,000 members\nreturn items;"
+        "jsCode": "// One search request per page of contacts with a mug number (members are filtered by tag afterwards).\nconst items = [];\nfor (let page = 1; page <= 50; page++) items.push({ json: { page, pageLimit: 100 } }); // up to 5,000 contacts\nreturn items;"
       },
       "id": "f275446e-1432-45fd-829b-584d83038e9a",
       "name": "Build Search Pages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        896,
+        1344,
         160
       ]
     },
@@ -201,7 +201,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1120,
+        1568,
         160
       ],
       "credentials": {
@@ -213,14 +213,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id)) continue;\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nreturn [{ json: { period, updatedAt: new Date().toISOString(), members } }];"
+        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id) || !(c.tags || []).includes(cfg.MEMBER_TAG)) continue; // guests are not listed\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nconst result = { period, updatedAt: new Date().toISOString(), members };\n$getWorkflowStaticData('global').members = { at: Date.now(), result };\nreturn [{ json: result }];"
       },
       "id": "d7efb48f-346d-4dbc-a56e-5eb536cdca41",
       "name": "Shape Members",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1344,
+        1792,
         160
       ]
     },
@@ -234,7 +234,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1568,
+        2016,
         160
       ]
     },
@@ -412,6 +412,67 @@
         1568,
         800
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reuses the member list read in the last MEMBER_CACHE_SECONDS (live webhook runs only).\nconst cfg = $('Config').first().json;\nconst cached = $getWorkflowStaticData('global').members;\nconst fresh = cached && Date.now() - cached.at < cfg.MEMBER_CACHE_SECONDS * 1000;\nreturn [{ json: fresh ? { fresh: true, ...cached.result } : { fresh: false } }];"
+      },
+      "id": "13386f9a-6cd5-4dbf-a1da-f80832c0bb78",
+      "name": "Member Cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fc7af56a-a32a-4344-9d04-197922249b6c",
+              "leftValue": "={{ $json.fresh }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b594b3df-45a1-419b-8036-fa8263b5c732",
+      "name": "Cache Fresh?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "babbbd32-939e-43af-a671-da2b63303545",
+      "name": "Send Cached Members",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        -80
+      ]
     }
   ],
   "connections": {
@@ -452,7 +513,7 @@
       "main": [
         [
           {
-            "node": "Build Search Pages",
+            "node": "Member Cache",
             "type": "main",
             "index": 0
           }
@@ -573,6 +634,35 @@
         [
           {
             "node": "Send Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Member Cache": {
+      "main": [
+        [
+          {
+            "node": "Cache Fresh?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cache Fresh?": {
+      "main": [
+        [
+          {
+            "node": "Send Cached Members",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Search Pages",
             "type": "main",
             "index": 0
           }

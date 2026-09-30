@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – new member mug numbers (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_DIGITS: 3,        // 38 -> \"038\"\n  START_AFTER: 0,       // highest mug number already handed out (only needed if not all members are in GHL yet)\n  SKIP: [],             // mug numbers never to hand out, e.g. [1, 13, 100]\n  ASSIGNED_TAG: 'mug-assigned', // GHL workflow on this tag sends the member their mug number by SMS\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    freePourStatus: 'nQ1XQVxK7dt5x2jkmzQK',\n    fourPackStatus: 'CPdRbUyVL44UpTcIOHzc',\n    merchStatus: 'hUof3kNaxMaSle2hym89',\n    mugPricingStatus: 'wrl8FbQuiPNbEATFZcUY',\n  },\n  PIPELINE: { id: 'ay4k4DUjXvvQaYnmmjIA', available: '10497e96-254f-471e-8571-66b59f4b1dc5' },\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – new member mug numbers (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MEMBER_TAG: 'mug-club-member', // added to everyone who goes through this workflow\n  MUG_DIGITS: 5,        // 3150 -> \"03150\"\n  START_AFTER: 0,       // highest mug number already handed out outside GHL (imported Toast guests are read from GHL)\n  SKIP: [],             // mug numbers never to hand out, e.g. [1, 13, 100]\n  ASSIGNED_TAG: 'mug-assigned', // GHL workflow on this tag sends the member their mug number by SMS\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    freePourStatus: 'nQ1XQVxK7dt5x2jkmzQK',\n    fourPackStatus: 'CPdRbUyVL44UpTcIOHzc',\n    merchStatus: 'hUof3kNaxMaSle2hym89',\n    mugPricingStatus: 'wrl8FbQuiPNbEATFZcUY',\n  },\n  PIPELINE: { id: 'ay4k4DUjXvvQaYnmmjIA', available: '10497e96-254f-471e-8571-66b59f4b1dc5' },\n}}];"
       },
       "id": "e7884efa-5a83-43e2-8e60-e5139cecea5c",
       "name": "Config",
@@ -69,7 +69,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// One search request per page of members that already have a mug number.\nconst PAGES = 10;      // 10 x 100 = up to 1,000 members\nconst items = [];\nfor (let page = 1; page <= PAGES; page++) items.push({ json: { page, pageLimit: 100 } });\nreturn items;"
+        "jsCode": "// One search request per page of contacts with a mug number (every guest and member).\nconst items = [];\nfor (let page = 1; page <= 50; page++) items.push({ json: { page, pageLimit: 100 } }); // up to 5,000 contacts\nreturn items;"
       },
       "id": "0d3f690c-6f17-4c3a-98bc-5966ed8628ee",
       "name": "Build Search Pages",
@@ -121,7 +121,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Gives the new member the next free mug number (highest in GHL + 1).\n// A member who already has a mug number keeps it, and their perk statuses are left alone.\nconst cfg = $('Config').first().json;\nconst contact = $('Get Contact').first().json.contact || {};\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email || contact.id;\nconst own = mugOf(contact);\nif (own) {\n  return [{ json: { contactId: contact.id, name, mug: own, alreadyHad: true, fieldUpdates: [] } }];\n}\n\nconst taken = new Set();\nlet max = cfg.START_AFTER;\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    const n = parseInt(mugOf(c).replace(/\\D/g, ''), 10);\n    if (!n) continue;\n    taken.add(n);\n    if (n > max) max = n;\n  }\n}\n// GHL search can lag a few seconds behind; never reuse a number this workflow just gave out\nconst seen = $getWorkflowStaticData('global');\nif ((seen.lastMug || 0) > max) max = seen.lastMug;\n\nlet n = max + 1;\nwhile (taken.has(n) || cfg.SKIP.includes(n)) n++;\nif (n >= 10 ** cfg.MUG_DIGITS) throw new Error(`No ${cfg.MUG_DIGITS}-digit mug numbers left – raise MUG_DIGITS`);\nseen.lastMug = n;\n// Only fill perk statuses that are empty (a member created from a Toast order may already have redeemed one)\nconst current = {};\nfor (const f of contact.customFields || []) current[f.id] = f.value;\nconst available = (id) => (current[id] ? [] : [{ id, field_value: 'Available' }]);\nconst mug = String(n).padStart(cfg.MUG_DIGITS, '0');\nreturn [{ json: { contactId: contact.id, name, mug, alreadyHad: false,\n  fieldUpdates: [\n    { id: cfg.FIELD_IDS.mugNumber, field_value: mug },\n    ...available(cfg.FIELD_IDS.freePourStatus),\n    ...available(cfg.FIELD_IDS.fourPackStatus),\n    ...available(cfg.FIELD_IDS.merchStatus),\n    ...available(cfg.FIELD_IDS.mugPricingStatus),\n  ] } }];"
+        "jsCode": "// Gives the new member the next free mug number (highest in GHL + 1).\n// A contact who already has one (member, or imported Toast guest) keeps it.\n// Perk statuses are only filled where empty, so perks already redeemed stay redeemed.\nconst cfg = $('Config').first().json;\nconst contact = $('Get Contact').first().json.contact || {};\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email || contact.id;\nconst own = mugOf(contact);\nconst wasMember = (contact.tags || []).includes(cfg.MEMBER_TAG);\nconst current = {};\nfor (const f of contact.customFields || []) current[f.id] = f.value;\nconst available = (id) => (current[id] ? [] : [{ id, field_value: 'Available' }]);\nconst perkStatuses = () => [\n  ...available(cfg.FIELD_IDS.freePourStatus),\n  ...available(cfg.FIELD_IDS.fourPackStatus),\n  ...available(cfg.FIELD_IDS.merchStatus),\n  ...available(cfg.FIELD_IDS.mugPricingStatus),\n];\nif (own) {\n  return [{ json: { contactId: contact.id, name, mug: own, alreadyHad: true, wasMember, fieldUpdates: perkStatuses() } }];\n}\n\nconst taken = new Set();\nlet max = cfg.START_AFTER;\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    const n = parseInt(mugOf(c).replace(/\\D/g, ''), 10);\n    if (!n) continue;\n    taken.add(n);\n    if (n > max) max = n;\n  }\n}\n// GHL search can lag a few seconds behind; never reuse a number this workflow just gave out\nconst seen = $getWorkflowStaticData('global');\nif ((seen.lastMug || 0) > max) max = seen.lastMug;\n\nlet n = max + 1;\nwhile (taken.has(n) || cfg.SKIP.includes(n)) n++;\nseen.lastMug = n;\nif (n >= 10 ** cfg.MUG_DIGITS) throw new Error(`No ${cfg.MUG_DIGITS}-digit mug numbers left – raise MUG_DIGITS`);\nconst mug = String(n).padStart(cfg.MUG_DIGITS, '0');\nreturn [{ json: { contactId: contact.id, name, mug, alreadyHad: false, wasMember,\n  fieldUpdates: [{ id: cfg.FIELD_IDS.mugNumber, field_value: mug }, ...perkStatuses()] } }];"
       },
       "id": "64833c22-d907-4651-b1a2-ad0cd9771d5f",
       "name": "Pick Mug Number",
@@ -231,11 +231,11 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ tags: [ $('Config').first().json.ASSIGNED_TAG ] }) }}",
+        "jsonBody": "={{ JSON.stringify({ tags: [ $('Config').first().json.ASSIGNED_TAG, $('Config').first().json.MEMBER_TAG ] }) }}",
         "options": {}
       },
       "id": "f23db99e-7fcb-4690-975f-e36e2eca45df",
-      "name": "Tag mug-assigned",
+      "name": "Tag Member",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -264,7 +264,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: $('Pick Mug Number').item.json.alreadyHad ? `[Craft Mountain perks] ${$('Pick Mug Number').item.json.name} signed up again – keeps mug ${$('Pick Mug Number').item.json.mug}` : `[Craft Mountain perks] New member ${$('Pick Mug Number').item.json.name} – mug ${$('Pick Mug Number').item.json.mug}. Please prepare mug ${$('Pick Mug Number').item.json.mug}.`, alertType: 'new_member', mug: $('Pick Mug Number').item.json.mug, member: $('Pick Mug Number').item.json.name }) }}",
+        "jsonBody": "={{ (() => { const m = $('Pick Mug Number').item.json; const text = m.wasMember ? `[Craft Mountain perks] ${m.name} signed up again – keeps mug ${m.mug}` : m.alreadyHad ? `[Craft Mountain perks] New member ${m.name} (existing Toast guest) – mug ${m.mug}. Please prepare mug ${m.mug}.` : `[Craft Mountain perks] New member ${m.name} – mug ${m.mug}. Please prepare mug ${m.mug}.`; return JSON.stringify({ text, alertType: 'new_member', mug: m.mug, member: m.name }); })() }}",
         "options": {}
       },
       "id": "305dcf82-9290-4b42-9d78-d52865b12296",
@@ -359,14 +359,14 @@
       "main": [
         [
           {
-            "node": "Tag mug-assigned",
+            "node": "Tag Member",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Tag mug-assigned": {
+    "Tag Member": {
       "main": [
         [
           {
