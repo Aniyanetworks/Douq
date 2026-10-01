@@ -81,7 +81,7 @@ input, select {
 .tabs { display: flex; gap: 6px; margin-left: auto; }
 .tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .lock { margin-left: 6px; }
-main { padding: 16px; max-width: 1200px; margin: 0 auto; }
+main { padding: 16px 0; width: 90%; margin: 0 auto; }
 .demo { padding: 6px 16px; background: var(--warn-bg); color: var(--warn); text-align: center; font-size: 14px; }
 
 /* ---------- login ---------- */
@@ -127,7 +127,8 @@ main { padding: 16px; max-width: 1200px; margin: 0 auto; }
   border: 1px dashed var(--line);
   border-radius: 12px;
 }
-.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .card { padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
 .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .mug {
@@ -176,7 +177,53 @@ main { padding: 16px; max-width: 1200px; margin: 0 auto; }
 .card.clickable:hover { border-color: var(--accent); }
 .card.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .card.clickable:active { transform: scale(0.99); }
-.refreshing { opacity: 0.55; transition: opacity 0.2s; }
+.cards.hidden { display: none; }
+.view-toggle { display: flex; flex: 0 0 auto; }
+.view-toggle button { border-radius: 0; }
+.view-toggle button:first-child { border-radius: 10px 0 0 10px; }
+.view-toggle button:last-child { border-radius: 0 10px 10px 0; margin-left: -1px; }
+.view-toggle button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.members-table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
+.members-table th { position: sticky; top: 0; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--panel); border-bottom: 1px solid var(--line); }
+.members-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.members-table tbody tr { cursor: pointer; }
+.members-table tbody tr:last-child td { border-bottom: 0; }
+.members-table tbody tr:hover { background: var(--used-bg); }
+.members-table tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.t-mug { font-weight: 800; color: var(--accent); }
+.t-name { font-weight: 600; }
+.t-contact, .t-initial { color: var(--muted); }
+.t-initial .ok { color: var(--good); font-weight: 600; }
+.t-actions { text-align: right; }
+.t-actions .icon-btn { width: 34px; min-height: 34px; }
+.perk-cell.available { color: var(--good); background: var(--good-bg); font-weight: 600; }
+.perk-cell.used { color: var(--used); }
+.progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 3px;
+  overflow: hidden;
+  background: var(--line);
+}
+.progress::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: var(--accent);
+  animation: progress 1.1s ease-in-out infinite;
+}
+@keyframes progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress::before { width: 100%; animation: none; }
+}
 
 /* ---------- log ---------- */
 .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-bottom: 14px; }

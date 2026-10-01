@@ -12,6 +12,24 @@ const SmsIcon = () => (
   </svg>
 );
 
+const iconProps = { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': true, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+const GridIcon = () => (
+  <svg {...iconProps}>
+    <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+const TableIcon = () => (
+  <svg {...iconProps}>
+    <rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 10v10" />
+  </svg>
+);
+
+const VIEW_KEY = 'members-view';
+const loadView = () => {
+  try { return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'table'; } catch { return 'table'; }
+};
+
 const REFRESH_MS = 60_000;
 const PAGE_SIZE = 24;
 
@@ -32,6 +50,11 @@ export default function Members({ pin, onAuthError }) {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('mug-asc');
+  const [view, setView] = useState(loadView);
+  const pickView = (v) => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage unavailable */ }
+  };
   const [shown, setShown] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState(null);
   const closeLog = useCallback(() => setSelected(null), []);
@@ -93,6 +116,7 @@ export default function Members({ pin, onAuthError }) {
 
   return (
     <section>
+      {loading && <div className="progress" role="progressbar" aria-label="Loading" />}
       <div className="toolbar">
         <input
           className="search"
@@ -106,6 +130,10 @@ export default function Members({ pin, onAuthError }) {
         <select className="sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort members">
           {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
         </select>
+        <div className="view-toggle" role="group" aria-label="View">
+          <button type="button" className={view === 'grid' ? 'active' : ''} aria-pressed={view === 'grid'} title="Grid view" aria-label="Grid view" onClick={() => pickView('grid')}><GridIcon /></button>
+          <button type="button" className={view === 'table' ? 'active' : ''} aria-pressed={view === 'table'} title="Table view" aria-label="Table view" onClick={() => pickView('table')}><TableIcon /></button>
+        </div>
         <button onClick={load} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
       </div>
 
@@ -123,7 +151,60 @@ export default function Members({ pin, onAuthError }) {
         </div>
       )}
 
-      <div className={loading && data ? 'cards refreshing' : 'cards'}>
+      {view === 'table' && visible.length > 0 && (
+        <div className="table-wrap">
+          <table className="members-table">
+            <thead>
+              <tr>
+                <th>Mug</th>
+                <th>Name</th>
+                <th>Contact</th>
+                {visible[0].perks.map((p) => <th key={p.key}>{p.label}</th>)}
+                <th>Initial Pour</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((m) => (
+                <tr
+                  key={m.mug + m.name}
+                  tabIndex={0}
+                  aria-label={`Mug ${m.mug} ${m.name} – view history`}
+                  onClick={() => setSelected(m)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    e.preventDefault();
+                    setSelected(m);
+                  }}
+                >
+                  <td className="t-mug">#{m.mug}</td>
+                  <td className="t-name">{m.name}</td>
+                  <td className="t-contact">{m.phone || m.email}</td>
+                  {m.perks.map((p) => (
+                    <td key={p.key} className={p.used ? 'perk-cell used' : 'perk-cell available'}>
+                      {p.used ? `Used ${shortDay(p.date)}` : 'Available'}
+                    </td>
+                  ))}
+                  <td className="t-initial">{m.initialPour ? `Received ${shortDay(m.initialPour)}` : <span className="ok">Not yet</span>}</td>
+                  <td className="t-actions">
+                    <button
+                      className="icon-btn"
+                      title="Reminders sent"
+                      aria-label={`Reminders sent to mug ${m.mug}`}
+                      onClick={(e) => { e.stopPropagation(); setRemindersFor(m); }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <SmsIcon />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className={view === 'table' ? 'cards hidden' : 'cards'}>
         {visible.map((m) => (
           <article
             key={m.mug + m.name}

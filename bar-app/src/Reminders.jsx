@@ -70,6 +70,7 @@ export default function Reminders({ pin, onAuthError }) {
 
   return (
     <section>
+      {loading && <div className="progress" role="progressbar" aria-label="Loading" />}
       <div className="filters">
         <label>From <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} /></label>
         <label>To <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label>
@@ -101,7 +102,7 @@ export default function Reminders({ pin, onAuthError }) {
       {rows && shown.length === 0 && <div className="empty">No reminders sent for these filters.</div>}
 
       {shown.length > 0 && (
-        <div className={loading ? 'table-wrap refreshing' : 'table-wrap'}>
+        <div className="table-wrap">
           <table>
             <thead>
               <tr><th>Sent</th><th>Mug</th><th>Member</th><th>Type</th><th>Unused perks</th><th>Use by</th></tr>
