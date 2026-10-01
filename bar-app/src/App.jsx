@@ -35,7 +35,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          Craft Mountain <span>Mug Club</span>
+          Essential <span>Members</span>
         </div>
         <nav className="tabs">
           {TABS.map((t) => (

@@ -334,6 +334,9 @@ body.modal-open { overflow: hidden; }
 .tl-detail { margin-top: 6px; font-size: 13px; color: var(--muted); }
 
 @media (max-width: 600px) {
+  .toolbar { flex-wrap: wrap; }
+  .toolbar .search:not(.small) { flex: 1 1 100%; }
+  .toolbar .sort { flex: 1 1 0; min-width: 0; }
   .modal-backdrop { padding: 0; align-items: end; }
   .modal { max-height: 90vh; border-radius: 16px 16px 0 0; }
 

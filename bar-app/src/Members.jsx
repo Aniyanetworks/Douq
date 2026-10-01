@@ -49,7 +49,7 @@ export default function Members({ pin, onAuthError }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState('mug-asc');
+  const [sort, setSort] = useState('mug-desc');
   const [view, setView] = useState(loadView);
   const pickView = (v) => {
     setView(v);
@@ -87,13 +87,21 @@ export default function Members({ pin, onAuthError }) {
     if (q) {
       const digits = mugDigits(q);
       const byMug = /^\s*(mug)?\s*#?\s*\d+\s*$/i.test(q);
+      // Bare digits could be a mug or part of a phone; "#37" / "mug 37" is only ever a mug
+      const mugOnly = /^\s*(mug|#)/i.test(q);
       const phoneDigits = q.replace(/\D/g, '');
+      const phoneHit = (m) => phoneDigits.length >= 4 && m.phone.replace(/\D/g, '').includes(phoneDigits);
       found = byMug
-        ? list.filter((m) => mugDigits(m.mug) === digits)
+        ? list.filter((m) => mugDigits(m.mug) === digits || (!mugOnly && phoneHit(m)))
         : list.filter((m) =>
           m.name.toLowerCase().includes(q) ||
           m.email.toLowerCase().includes(q) ||
-          (phoneDigits && m.phone.replace(/\D/g, '').includes(phoneDigits)));
+          phoneHit(m));
+      // An exact mug match always comes first
+      if (byMug) {
+        const isMug = (m) => mugDigits(m.mug) === digits;
+        return [...found].sort((a, b) => isMug(b) - isMug(a) || SORTS[sort].compare(a, b));
+      }
     }
     return [...found].sort(SORTS[sort].compare);
   }, [data, query, sort]);
@@ -121,7 +129,7 @@ export default function Members({ pin, onAuthError }) {
         <input
           className="search"
           type="search"
-          placeholder="Mug number or name…"
+          placeholder="Mug number, name or phone…"
           inputMode="search"
           autoFocus
           value={query}

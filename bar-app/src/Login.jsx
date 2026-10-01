@@ -25,7 +25,7 @@ export default function Login({ onUnlock }) {
   return (
     <div className="login">
       <form onSubmit={submit} className="login-card">
-        <h1>Craft Mountain<br /><span>Mug Club</span></h1>
+        <h1>Essential <span>Members</span></h1>
         <label htmlFor="pin">Staff PIN</label>
         <input
           id="pin"
