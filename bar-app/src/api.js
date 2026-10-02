@@ -61,7 +61,7 @@ export function clearCache() {
 
 export const getMembers = async (pin) => writeCache(cacheKey.members(), await call('members', pin));
 export const getLog = async (pin, from, to) => writeCache(cacheKey.log(from, to), await call('log', pin, { from, to }));
-export const MUG_STATUSES = ['Ordered', 'Received', 'Delivered'];
+export const MUG_STATUSES = ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'];
 
 // Sets one member's mug status, then patches the cached member list so every screen shows it at once
 export async function setMugStatus(pin, member, status) {

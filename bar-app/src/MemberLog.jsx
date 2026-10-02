@@ -77,7 +77,11 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
                 className={member.mugStatus === s ? 'active' : ''}
                 aria-pressed={member.mugStatus === s}
                 disabled={!!saving}
-                onClick={() => member.mugStatus !== s && pickStatus(s)}
+                onClick={() => {
+                  if (member.mugStatus === s) return;
+                  if (s === 'Cancelled' && !window.confirm(`Cancel the mug order for #${member.mug} ${member.name}?`)) return;
+                  pickStatus(s);
+                }}
               >
                 {saving === s ? 'Saving…' : s}
               </button>

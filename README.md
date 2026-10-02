@@ -92,6 +92,6 @@ When a new member gets a mug number, workflow 4 also:
 2. Adds the tag `mug-ordered` → a GHL workflow on that tag sends the member "your mug is being made"
 3. Emails the order to Arcane Engraving through GHL (Conversations API, no SMTP; wording in `Config > ARCANE`)
 
-Staff move the status on to `Received` and `Delivered` from the bar site (open a member → Mug status). Each change adds a note on the GHL contact.
+Staff can also set `Requested` (a member asked for a mug, before it is ordered) and move the status on to `Received` and `Delivered` (or `Cancelled`) from the bar site (open a member → Mug status). Each change adds a note on the GHL contact.
 
-Setup: create the **Mug Status** dropdown field in GHL (`Ordered`, `Received`, `Delivered`), then paste its ID into `MUG_STATUS_FIELD` in the Config node of workflows 4 and 6. Create a GHL contact for Arcane Engraving (with their order email address) and paste its ID into `ARCANE.CONTACT_ID`. The private integration token needs the `conversations/message.write` scope.
+Setup: create the **Mug Status** dropdown field in GHL (`Requested`, `Ordered`, `Received`, `Delivered`, `Cancelled`), then paste its ID into `MUG_STATUS_FIELD` in the Config node of workflows 4 and 6. Create a GHL contact for Arcane Engraving (with their order email address) and paste its ID into `ARCANE.CONTACT_ID`. The private integration token needs the `conversations/message.write` scope.
