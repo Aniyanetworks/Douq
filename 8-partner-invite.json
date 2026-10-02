@@ -1,0 +1,401 @@
+{
+  "name": "08.Craft Mountain – Partner Invite",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "partner-invite",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "76aa3c51-9864-494c-865e-d38c10ba8e89",
+      "name": "Partner Invite Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "436c3d82-e1ff-4f08-b2bc-368aaa2ed25b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG - partner invite (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MEMBER_TAG: 'mug-club-member', // a partner who already has this tag is left alone\n  INVITED_TAG: 'partner-invited', // GHL workflow on this tag sends the partner invite\n  FIELD_IDS: {\n    partnerFirstName: 'hI3sepNhpwOxGwyQOhRZ',\n    partnerLastName: 'SNkcXyVNmEgFHUOygCMY',\n    partnerEmail: '3EchTsgaL50DSvuQDoCC',\n    partnerPhone: 'es7Of9Be8D6u2QhzqhMd',\n    partnerStatus: 'J5PpUqzNekLivH5FeGGU',\n  },\n}}];"
+      },
+      "id": "d8121f2d-7b2c-4b58-9a86-3a302790b667",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Partner Invite Webhook').first().json.body.contact_id || $('Partner Invite Webhook').first().json.body.contactId || $('Partner Invite Webhook').first().json.body.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7f1101ab-1fb5-4e28-a213-a35c4929e64f",
+      "name": "Get Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads the partner details the member typed on the signup form.\nconst cfg = $('Config').first().json;\nconst member = $('Get Member').first().json.contact || {};\nconst cf = {};\nfor (const f of member.customFields || []) cf[f.id] = f.value;\nconst F = cfg.FIELD_IDS;\nconst val = (id) => String(cf[id] || '').trim();\nconst partnerEmail = val(F.partnerEmail).toLowerCase();\nconst memberEmail = String(member.email || '').trim().toLowerCase();\nif (!partnerEmail || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(partnerEmail)) return [{ json: { skip: 'No valid partner email' } }];\nif (partnerEmail === memberEmail) return [{ json: { skip: \"Partner email is the member's own email\" } }];\nreturn [{ json: {\n  skip: '',\n  memberId: member.id,\n  partnerEmail,\n  partnerFirstName: val(F.partnerFirstName),\n  partnerLastName: val(F.partnerLastName),\n  partnerPhone: val(F.partnerPhone),\n  memberFirstName: member.firstName || '',\n  memberLastName: member.lastName || '',\n  memberEmail,\n  memberPhone: member.phone || '',\n} }];"
+      },
+      "id": "91ab15f1-6373-4b7a-b48e-f76d30b3c0ee",
+      "name": "Read Partner Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "93155865-0ae8-4c20-9f01-0478ae1852d5",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "37137106-464f-4567-80b9-5cc262f27441",
+      "name": "Has Partner?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/search/duplicate?locationId={{ $('Config').first().json.LOCATION_ID }}&email={{ encodeURIComponent($json.partnerEmail) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad455136-683a-4eed-88b9-543845ad62a0",
+      "name": "Find Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds the partner contact. The partner's own \"Partner\" fields point back at the member,\n// so the invite email can say \"join Essential Members with <member>\".\nconst cfg = $('Config').first().json;\nconst d = $('Read Partner Details').first().json;\nconst existing = $json.contact || null;\nif (existing && (existing.tags || []).includes(cfg.MEMBER_TAG)) {\n  return [{ json: { created: false, reason: 'Partner is already a member', partnerId: existing.id } }];\n}\nconst F = cfg.FIELD_IDS;\nconst cf = (id, v) => (v ? [{ id, field_value: v }] : []);\nconst body = {\n  locationId: cfg.LOCATION_ID,\n  email: d.partnerEmail,\n  firstName: d.partnerFirstName || undefined,\n  lastName: d.partnerLastName || undefined,\n  phone: d.partnerPhone || undefined,\n  source: 'Partner invite',\n  tags: [cfg.INVITED_TAG],\n  customFields: [\n    ...cf(F.partnerFirstName, d.memberFirstName),\n    ...cf(F.partnerLastName, d.memberLastName),\n    ...cf(F.partnerEmail, d.memberEmail),\n    ...cf(F.partnerPhone, d.memberPhone),\n    ...cf(F.partnerStatus, 'Invited'),\n  ],\n};\nreturn [{ json: { created: true, body } }];"
+      },
+      "id": "fc78bebb-73dc-4fc6-af13-b8ae0ec61e46",
+      "name": "Build Partner Contact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3093d2f7-2c6b-4a38-949e-a0653982a25a",
+              "leftValue": "={{ $json.created }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "95929b2d-6afa-4800-b1a9-85ca05ef05f1",
+      "name": "Create Partner?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "a3b32d9c-4bdd-4ad9-bd77-60e182ce0156",
+      "name": "Save Partner Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        100
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, partnerId: ($json.contact || {}).id || '' }) }}",
+        "options": {}
+      },
+      "id": "89a7fbc2-e244-485c-8dc5-298df80e6238",
+      "name": "Partner Invited",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, skipped: $json.reason || $json.skip || '' }) }}",
+        "options": {}
+      },
+      "id": "e398588f-7f74-4666-89ca-14b7f38bd2c8",
+      "name": "Nothing To Do",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Partner Invite Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Member": {
+      "main": [
+        [
+          {
+            "node": "Read Partner Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Partner Details": {
+      "main": [
+        [
+          {
+            "node": "Has Partner?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Partner?": {
+      "main": [
+        [
+          {
+            "node": "Find Partner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing To Do",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Partner": {
+      "main": [
+        [
+          {
+            "node": "Build Partner Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Partner Contact": {
+      "main": [
+        [
+          {
+            "node": "Create Partner?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Partner?": {
+      "main": [
+        [
+          {
+            "node": "Save Partner Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing To Do",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Partner Contact": {
+      "main": [
+        [
+          {
+            "node": "Partner Invited",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false
+}

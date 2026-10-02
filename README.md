@@ -95,3 +95,11 @@ When a new member gets a mug number, workflow 4 also:
 Staff can also set `Requested` (a member asked for a mug, before it is ordered) and move the status on to `Received` and `Delivered` (or `Cancelled`) from the bar site (open a member → Mug status). Each change adds a note on the GHL contact.
 
 Setup: create the **Mug Status** dropdown field in GHL (`Requested`, `Ordered`, `Received`, `Delivered`, `Cancelled`), then paste its ID into `MUG_STATUS_FIELD` in the Config node of workflows 4 and 6. Create a GHL contact for Arcane Engraving (with their order email address) and paste its ID into `ARCANE.CONTACT_ID`. The private integration token needs the `conversations/message.write` scope.
+
+## Partner invite (workflow 8)
+The signup form has an optional "Add a spouse or partner" checkbox plus four Partner fields. When it is ticked:
+1. A GHL workflow (trigger: this form submitted, Add Partner = Yes) posts the member's contact id to the `partner-invite` webhook of workflow 8.
+2. Workflow 8 creates (or updates) the partner contact: tag `partner-invited`, Partner Status = Invited. The partner's own Partner fields hold the **member's** name, email and phone, so the invite email can say "join Essential Members with <member>".
+3. A GHL workflow on the tag `partner-invited` runs for the partner: moves a card into the Partner Conversion pipeline (stage Invited) and sends the invite email.
+
+A partner who already has the `mug-club-member` tag is left alone. The invite is email-only: the partner has not given SMS consent.
