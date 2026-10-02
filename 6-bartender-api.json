@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  MEMBER_TAG: 'mug-club-member',     // only Mug Club members are listed\n  MEMBER_CACHE_SECONDS: 60, // all tablets share one GHL read per minute\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH', // GHL dropdown: Ordered / Received / Delivered\n  MUG_STATUSES: ['Ordered', 'Received', 'Delivered'],\n  MUG_STATUS_TAGS: { Ordered: 'mug-ordered', Received: 'mug-received', Delivered: 'mug-delivered' }, // a GHL workflow on each tag texts the member\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  MEMBER_TAG: 'mug-club-member',     // only Mug Club members are listed\n  MEMBER_CACHE_SECONDS: 60, // all tablets share one GHL read per minute\n  // Monthly perks shown on each member card\n  PERKS: [\n    { key: 'free_pour', label: 'Free Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '4-Pack 50%',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n    { key: 'merch',     label: 'Merch 10%',   status: 'hUof3kNaxMaSle2hym89', period: 'KKeZG0ZINPUecpSVpyhG', date: '4N9eBmteLZT32n7H26Di' },\n    { key: 'mug',       label: 'Mug Pricing', status: 'wrl8FbQuiPNbEATFZcUY', period: '72x0lCUx388Wko8MGSlC', date: 'NSE4Zsviw6HOoQkQB6t1' },\n  ],\n}}];"
       },
       "id": "6505dbac-7c6f-4631-be57-f33cd76be673",
       "name": "Config",
@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nreturn [{ json: { route: ['log', 'reminders'].includes(body.action) ? body.action : 'members', from: body.from || '', to: body.to || '' } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nconst route = ['log', 'reminders', 'mug-status'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '' } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -145,6 +145,30 @@
               },
               "renameOutput": true,
               "outputKey": "reminders"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "edfba0c0-2c64-43de-8be2-e19f599f7c2d",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "mug-status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mug-status"
             }
           ]
         },
@@ -223,7 +247,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id) || !(c.tags || []).includes(cfg.MEMBER_TAG)) continue; // guests are not listed\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nconst result = { period, updatedAt: new Date().toISOString(), members };\n$getWorkflowStaticData('global').members = { at: Date.now(), result };\nreturn [{ json: result }];"
+        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id) || !(c.tags || []).includes(cfg.MEMBER_TAG)) continue; // guests are not listed\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      id: c.id,\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n      mugStatus: cf[cfg.MUG_STATUS_FIELD] || '',\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nconst result = { period, updatedAt: new Date().toISOString(), members };\n$getWorkflowStaticData('global').members = { at: Date.now(), result };\nreturn [{ json: result }];"
       },
       "id": "d7efb48f-346d-4dbc-a56e-5eb536cdca41",
       "name": "Shape Members",
@@ -503,6 +527,160 @@
         1344,
         -80
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Staff set a member's mug status (Ordered / Received / Delivered) from the bar site.\nconst cfg = $('Config').first().json;\nconst req = $('Check Request').first().json;\nif (!/^[A-Za-z0-9]{10,40}$/.test(req.contactId)) throw new Error('Bad contact id');\nif (!cfg.MUG_STATUSES.includes(req.status)) throw new Error('Bad mug status');\nif (!cfg.MUG_STATUS_FIELD || cfg.MUG_STATUS_FIELD.startsWith('REPLACE')) throw new Error('MUG_STATUS_FIELD is not set in Config');\n$getWorkflowStaticData('global').members = null; // the next member list read sees the change\nreturn [{ json: { contactId: req.contactId, status: req.status, tag: cfg.MUG_STATUS_TAGS[req.status] } }];"
+      },
+      "id": "40522662-4b8b-492d-bc55-68d839cc49a3",
+      "name": "Validate Mug Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Config').first().json.MUG_STATUS_FIELD, field_value: $json.status }] }) }}",
+        "options": {}
+      },
+      "id": "7c3081d2-974b-406c-ba65-81fef3e15ded",
+      "name": "Save Mug Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        1200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Validate Mug Status').first().json.contactId }}/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: 'Mug status: ' + $('Validate Mug Status').first().json.status + ' (set on the bar site)' }) }}",
+        "options": {}
+      },
+      "id": "aa83bdba-c134-4e55-aae2-5d4fcb9bcf3a",
+      "name": "Add Mug Status Note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        1200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, status: $('Validate Mug Status').first().json.status }) }}",
+        "options": {}
+      },
+      "id": "6e7c400a-ca25-464d-bb65-b0145bcd212d",
+      "name": "Mug Status Saved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Validate Mug Status').first().json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Validate Mug Status').first().json.tag] }) }}",
+        "options": {}
+      },
+      "id": "1e9791db-1f95-43b0-8774-3d6df61c7590",
+      "name": "Tag Mug Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        1200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
@@ -565,6 +743,13 @@
         [
           {
             "node": "Build Reminder Pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Mug Status",
             "type": "main",
             "index": 0
           }
@@ -693,6 +878,50 @@
         [
           {
             "node": "Build Search Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Mug Status": {
+      "main": [
+        [
+          {
+            "node": "Save Mug Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Mug Status": {
+      "main": [
+        [
+          {
+            "node": "Add Mug Status Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Mug Status Note": {
+      "main": [
+        [
+          {
+            "node": "Tag Mug Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Mug Status": {
+      "main": [
+        [
+          {
+            "node": "Mug Status Saved",
             "type": "main",
             "index": 0
           }

@@ -1,11 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getLog, AuthError, readCache, cacheKey } from './api.js';
+import { getLog, MUG_STATUSES, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
 
+// Small coloured tag for a mug status; empty status shows a dash (table) or nothing
+export function MugBadge({ status, label }) {
+  if (!status) return <span className="mug-status s-none">–</span>;
+  return <span className={`mug-status s-${status.toLowerCase()}`}>{label ? `Mug ${status.toLowerCase()}` : status}</span>;
+}
+
 // Popup with one member's perk history. `member` needs mug + name; perks are shown when known.
-export default function MemberLog({ pin, member, onClose, onAuthError }) {
+export default function MemberLog({ pin, member, onClose, onAuthError, onMugStatus }) {
+  const [saving, setSaving] = useState('');
+  const [statusError, setStatusError] = useState('');
+  const pickStatus = async (status) => {
+    setSaving(status);
+    setStatusError('');
+    try {
+      await onMugStatus(member, status);
+    } catch (err) {
+      setStatusError(`Couldn't save the mug status (${err.message}).`);
+    } finally {
+      setSaving('');
+    }
+  };
   const [range, setRange] = useState('all');
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
@@ -45,6 +64,27 @@ export default function MemberLog({ pin, member, onClose, onAuthError }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {onMugStatus && member.id && (
+        <div className="mug-track">
+          <span className="mug-track-label">Mug status</span>
+          <div className="segmented" role="group" aria-label="Mug status">
+            {MUG_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={member.mugStatus === s ? 'active' : ''}
+                aria-pressed={member.mugStatus === s}
+                disabled={!!saving}
+                onClick={() => member.mugStatus !== s && pickStatus(s)}
+              >
+                {saving === s ? 'Saving…' : s}
+              </button>
+            ))}
+          </div>
+          {statusError && <p className="error">{statusError}</p>}
+        </div>
       )}
 
       <RangeTabs value={range} onChange={setRange} />

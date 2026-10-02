@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getMembers, AuthError, readCache, cacheKey } from './api.js';
+import { getMembers, setMugStatus, AuthError, readCache, cacheKey } from './api.js';
 import { clock, monthName, shortDay } from './format.js';
 import { MemberCardsSkeleton } from './Skeleton.jsx';
-import MemberLog from './MemberLog.jsx';
+import MemberLog, { MugBadge } from './MemberLog.jsx';
 import MemberReminders from './MemberReminders.jsx';
 
 const SmsIcon = () => (
@@ -58,6 +58,17 @@ export default function Members({ pin, onAuthError }) {
   const [shown, setShown] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState(null);
   const closeLog = useCallback(() => setSelected(null), []);
+  // Saves a new mug status; the modal shows an error if it fails
+  const changeMugStatus = useCallback(async (member, status) => {
+    try {
+      await setMugStatus(pin, member, status);
+    } catch (err) {
+      if (err instanceof AuthError) onAuthError();
+      throw err;
+    }
+    setData((d) => d && { ...d, members: d.members.map((m) => (m.id === member.id ? { ...m, mugStatus: status } : m)) });
+    setSelected((m) => (m && m.id === member.id ? { ...m, mugStatus: status } : m));
+  }, [pin, onAuthError]);
   const [remindersFor, setRemindersFor] = useState(null);
   const closeReminders = useCallback(() => setRemindersFor(null), []);
 
@@ -169,6 +180,7 @@ export default function Members({ pin, onAuthError }) {
                 <th>Contact</th>
                 {visible[0].perks.map((p) => <th key={p.key}>{p.label}</th>)}
                 <th>Initial Pour</th>
+                <th>Mug</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
@@ -194,6 +206,7 @@ export default function Members({ pin, onAuthError }) {
                     </td>
                   ))}
                   <td className="t-initial">{m.initialPour ? `Received ${shortDay(m.initialPour)}` : <span className="ok">Not yet</span>}</td>
+                  <td><MugBadge status={m.mugStatus} /></td>
                   <td className="t-actions">
                     <button
                       className="icon-btn"
@@ -232,6 +245,7 @@ export default function Members({ pin, onAuthError }) {
               <div>
                 <div className="name">{m.name}</div>
                 <div className="contact">{m.phone || m.email}</div>
+                {m.mugStatus && <MugBadge status={m.mugStatus} label />}
               </div>
             </div>
             <ul className="perks">
@@ -274,7 +288,7 @@ export default function Members({ pin, onAuthError }) {
         </div>
       )}
 
-      {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} />}
+      {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} onMugStatus={changeMugStatus} />}
       {remindersFor && <MemberReminders pin={pin} member={remindersFor} onClose={closeReminders} onAuthError={onAuthError} />}
     </section>
   );
