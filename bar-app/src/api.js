@@ -63,6 +63,15 @@ export const getMembers = async (pin) => writeCache(cacheKey.members(), await ca
 export const getLog = async (pin, from, to) => writeCache(cacheKey.log(from, to), await call('log', pin, { from, to }));
 export const MUG_STATUSES = ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'];
 
+// Status only moves forward. Cancelled can be set until the mug is delivered, and a cancelled order can only be requested again.
+export function canSetMugStatus(current, next) {
+  if (!current) return true;
+  if (current === next || current === 'Delivered') return false;
+  if (current === 'Cancelled') return next === 'Requested';
+  if (next === 'Cancelled') return true;
+  return MUG_STATUSES.indexOf(next) > MUG_STATUSES.indexOf(current);
+}
+
 // Sets one member's mug status, then patches the cached member list so every screen shows it at once
 export async function setMugStatus(pin, member, status) {
   await call('mug-status', pin, { contactId: member.id, status });

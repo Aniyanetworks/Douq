@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getLog, MUG_STATUSES, AuthError, readCache, cacheKey } from './api.js';
+import { getLog, MUG_STATUSES, canSetMugStatus, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
@@ -76,9 +76,10 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
                 type="button"
                 className={member.mugStatus === s ? 'active' : ''}
                 aria-pressed={member.mugStatus === s}
-                disabled={!!saving}
+                disabled={!!saving || (member.mugStatus !== s && !canSetMugStatus(member.mugStatus, s))}
+                title={member.mugStatus !== s && !canSetMugStatus(member.mugStatus, s) ? 'The status can only move forward' : undefined}
                 onClick={() => {
-                  if (member.mugStatus === s) return;
+                  if (!canSetMugStatus(member.mugStatus, s)) return;
                   if (s === 'Cancelled' && !window.confirm(`Cancel the mug order for #${member.mug} ${member.name}?`)) return;
                   pickStatus(s);
                 }}

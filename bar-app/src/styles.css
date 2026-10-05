@@ -345,6 +345,8 @@ body.modal-open { overflow: hidden; }
 .mug-track { padding: 12px 16px 14px; border-bottom: 1px solid var(--line); }
 .mug-track .segmented { flex-wrap: wrap; }
 .mug-track .segmented button { flex: 1 1 0; min-width: 84px; }
+.mug-track .segmented button:disabled { cursor: not-allowed; }
+.mug-track .segmented button.active:disabled { opacity: 1; }
 .mug-track-label { display: block; font-size: 13px; color: var(--muted); }
 .mug-track .segmented { padding: 6px 0 0; }
 .mug-track .error { margin: 6px 0 0; font-size: 14px; }
