@@ -2,7 +2,7 @@
 
 A small React site for bar staff:
 
-- **Members** – search a mug number or name and see this month's perks (Free Pour, 4-Pack 50%, Merch 10%, Mug Pricing) as *Available* or *Used*, plus whether the Initial Member Pour was given. Refreshes every minute.
+- **Members** – search a mug number or name and see this month's perks (Free Monthly Pour, 50% off 4-Pack, Merchandise 10%, Special Mug Pricing) as *Available* or *Used*, plus whether the Initial Member Pour was given. Refreshes every minute.
 - **Log** – redemptions, voids and alerts for a date range, with filters, totals and CSV export.
 
 The site never talks to GHL directly. It calls the **Bartender Site API** n8n workflow (`6-bartender-api.json`), which checks the staff PIN and reads GHL with the n8n credential, so no GHL token reaches the browser.

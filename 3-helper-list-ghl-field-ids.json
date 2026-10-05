@@ -54,6 +54,49 @@
       "parameters": {
         "jsCode": "// Prints each GHL custom field with its ID – copy the IDs into the Config nodes.\nconst fields = $json.customFields || [];\nreturn fields.map(f => ({ json: { name: f.name, id: f.id, key: f.fieldKey, type: f.dataType } }));"
       }
+    },
+    {
+      "id": "133035fe-dc1d-4e34-9638-677e0d3480a7",
+      "name": "Get Pipelines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/opportunities/pipelines?locationId=XTpY4DQ6CrYVvesFdX3K",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3decce4a-5299-49b5-a2d9-8719b3600e85",
+      "name": "List Pipeline Stage IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        520
+      ],
+      "parameters": {
+        "jsCode": "// Prints every pipeline stage with its ID - copy them into the Config nodes.\nconst out = [];\nfor (const p of $json.pipelines || []) for (const s of p.stages || []) out.push({ json: { pipeline: p.name, pipelineId: p.id, stage: s.name, stageId: s.id } });\nreturn out;"
+      }
     }
   ],
   "connections": {
@@ -62,6 +105,11 @@
         [
           {
             "node": "Get Custom Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Pipelines",
             "type": "main",
             "index": 0
           }
@@ -73,6 +121,17 @@
         [
           {
             "node": "List Field IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pipelines": {
+      "main": [
+        [
+          {
+            "node": "List Pipeline Stage IDs",
             "type": "main",
             "index": 0
           }

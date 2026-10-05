@@ -33,7 +33,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Monthly reset: builds one GHL search request per status field and page.\nconst LOCATION_ID = 'XTpY4DQ6CrYVvesFdX3K';\nconst STATUS_FIELDS = [\n  { label: 'Free Monthly Pour', fieldId: 'nQ1XQVxK7dt5x2jkmzQK' },\n  { label: '50% off 4-Pack',    fieldId: 'CPdRbUyVL44UpTcIOHzc' },\n  { label: 'Merch 10%',         fieldId: 'hUof3kNaxMaSle2hym89' },\n  { label: 'Mug pricing',       fieldId: 'wrl8FbQuiPNbEATFZcUY' },\n];\nconst PAGES = 10;      // 10 x 100 = up to 1,000 redeemed members per perk\nconst PAGE_LIMIT = 100;\nconst items = [];\nfor (const f of STATUS_FIELDS) for (let page = 1; page <= PAGES; page++) {\n  items.push({ json: { ...f, locationId: LOCATION_ID, page, pageLimit: PAGE_LIMIT } });\n}\nreturn items;"
+        "jsCode": "// Monthly reset: builds one GHL search request per status field and page.\nconst LOCATION_ID = 'XTpY4DQ6CrYVvesFdX3K';\nconst STATUS_FIELDS = [\n  { label: 'Free Monthly Pour', fieldId: 'nQ1XQVxK7dt5x2jkmzQK' },\n  { label: '50% off 4-Pack',    fieldId: 'CPdRbUyVL44UpTcIOHzc' },\n  { label: 'Merchandise 10%',         fieldId: 'hUof3kNaxMaSle2hym89' },\n  { label: 'Special Mug Pricing',       fieldId: 'wrl8FbQuiPNbEATFZcUY' },\n];\nconst PAGES = 10;      // 10 x 100 = up to 1,000 redeemed members per perk\nconst PAGE_LIMIT = 100;\nconst items = [];\nfor (const f of STATUS_FIELDS) for (let page = 1; page <= PAGES; page++) {\n  items.push({ json: { ...f, locationId: LOCATION_ID, page, pageLimit: PAGE_LIMIT } });\n}\nreturn items;"
       },
       "id": "9856a11f-3c1a-48c9-a5bf-c8a2dcddec4e",
       "name": "Build Reset Requests",
