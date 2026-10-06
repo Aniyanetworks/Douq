@@ -87,6 +87,7 @@ input, select {
 .topbar button { min-height: 38px; padding: 0 8px; } /* shorter header buttons */
 .tabs { display: flex; gap: 6px; margin-left: auto; }
 .tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fs-btn { display: inline-grid; place-items: center; width: 38px; padding: 0 !important; }
 .lock { margin-left: 6px; }
 main { padding: 16px 0; width: 90%; margin: 0 auto; }
 .demo { padding: 6px 16px; background: var(--warn-bg); color: var(--warn); text-align: center; font-size: 14px; }
