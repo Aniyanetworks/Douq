@@ -88,9 +88,9 @@ Copy the subscription **Secret** from Toast into `TOAST_WEBHOOK_SECRET` and set 
 
 ## Mug orders (workflow 4 + bar site)
 When a new member gets a mug number, workflow 4 also:
-1. Sets **Mug Status** = `Ordered` (only if empty, and not for members who sign up again)
-2. Adds the tag `order processing by vendor` → a GHL workflow on that tag sends the member "your mug is being made"
-3. Emails the order to Arcane Engraving through GHL (Conversations API, no SMTP; wording in `Config > ARCANE`)
+1. Sets **Mug Status** = `Requested` (shown as "Ordered by Member"; only if empty, and not for members who sign up again)
+2. Adds the tag `ordered by member` → the GHL workflow on that tag sends the order to the vendor (see **Vendor mug orders**, workflow 9)
+The vendor is emailed by GHL with a confirm link, and the status moves to `Ordered` ("Order Processing by Vendor") when the vendor confirms.
 
 Staff can also set `Requested` (a member asked for a mug, before it is ordered) and move the status on to `Received` and `Delivered` (or `Cancelled`) from the bar site (open a member → Mug status). Each change adds a note on the GHL contact.
 

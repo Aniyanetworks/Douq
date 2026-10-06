@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – new member mug numbers (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MEMBER_TAG: 'mug-club-member', // added to everyone who goes through this workflow\n  MUG_DIGITS: 5,        // 3150 -> \"03150\"\n  START_AFTER: 0,       // highest mug number already handed out outside GHL (imported Toast guests are read from GHL)\n  SKIP: [],             // mug numbers never to hand out, e.g. [1, 13, 100]\n  ASSIGNED_TAG: 'mug-assigned', // GHL workflow on this tag sends the member their mug number by SMS\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    freePourStatus: 'nQ1XQVxK7dt5x2jkmzQK',\n    fourPackStatus: 'CPdRbUyVL44UpTcIOHzc',\n    merchStatus: 'hUof3kNaxMaSle2hym89',\n    mugPricingStatus: 'wrl8FbQuiPNbEATFZcUY',\n  },\n  ORDERED_TAG: 'order processing by vendor',   // GHL workflow on this tag sends the member the \"your mug is being made\" message\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH', // GHL dropdown: Ordered / Received / Delivered (leave as is to skip status tracking)\n  ARCANE: {\n    CONTACT_ID: 'REPLACE_WITH_ARCANE_CONTACT_ID', // GHL contact for Arcane Engraving (its email is where orders go); leave as is to skip the email\n    SUBJECT: 'Mug order #{mug}',\n    // {mug} {name} {date} are filled in. Change this text to match Arcane's order format.\n    BODY: 'New mug order\\n\\nMug number: {mug}\\nMember name: {name}\\nDate ordered: {date}\\n',\n  },\n  PIPELINE: { id: 'ay4k4DUjXvvQaYnmmjIA', available: '10497e96-254f-471e-8571-66b59f4b1dc5' },\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – new member mug numbers (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MEMBER_TAG: 'mug-club-member', // added to everyone who goes through this workflow\n  MUG_DIGITS: 5,        // 3150 -> \"03150\"\n  START_AFTER: 0,       // highest mug number already handed out outside GHL (imported Toast guests are read from GHL)\n  SKIP: [],             // mug numbers never to hand out, e.g. [1, 13, 100]\n  ASSIGNED_TAG: 'mug-assigned', // GHL workflow on this tag sends the member their mug number by SMS\n  FIELD_IDS: {\n    mugNumber: 'vWklTcHjmQV1tW52XIAb',\n    freePourStatus: 'nQ1XQVxK7dt5x2jkmzQK',\n    fourPackStatus: 'CPdRbUyVL44UpTcIOHzc',\n    merchStatus: 'hUof3kNaxMaSle2hym89',\n    mugPricingStatus: 'wrl8FbQuiPNbEATFZcUY',\n  },\n  ORDERED_TAG: 'ordered by member',   // GHL workflow \"Ordered by Member\" runs on this tag: it sends the order to the vendor (workflow 9)\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH', // GHL dropdown: Requested / Ordered / Received / Delivered / Cancelled (leave as is to skip status tracking)\n  PIPELINE: { id: 'ay4k4DUjXvvQaYnmmjIA', available: '10497e96-254f-471e-8571-66b59f4b1dc5' },\n}}];"
       },
       "id": "e7884efa-5a83-43e2-8e60-e5139cecea5c",
       "name": "Config",
@@ -134,7 +134,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Gives the new member the next free mug number (highest in GHL + 1).\n// A contact who already has one (member, or imported Toast guest) keeps it.\n// A new member also gets the mug ordered: status Ordered, a tag for the member message, and an email to Arcane.\n// Perk statuses are only filled where empty, so perks already redeemed stay redeemed.\nconst cfg = $('Config').first().json;\nconst contact = $('Get Contact').first().json.contact || {};\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email || contact.id;\nconst own = mugOf(contact);\nconst wasMember = (contact.tags || []).includes(cfg.MEMBER_TAG);\nconst current = {};\nfor (const f of contact.customFields || []) current[f.id] = f.value;\nconst available = (id) => (current[id] ? [] : [{ id, field_value: 'Available' }]);\nconst perkStatuses = () => [\n  ...available(cfg.FIELD_IDS.freePourStatus),\n  ...available(cfg.FIELD_IDS.fourPackStatus),\n  ...available(cfg.FIELD_IDS.merchStatus),\n  ...available(cfg.FIELD_IDS.mugPricingStatus),\n];\nconst isSet = (v) => v && !String(v).startsWith('REPLACE');\nconst statusField = isSet(cfg.MUG_STATUS_FIELD) ? cfg.MUG_STATUS_FIELD : '';\n// A mug is ordered for every new member, but not when someone signs up again or already has a mug status\nconst orderMug = !wasMember && !(statusField && current[statusField]);\nconst tags = [cfg.ASSIGNED_TAG, cfg.MEMBER_TAG, ...(orderMug ? [cfg.ORDERED_TAG] : [])];\nconst orderUpdates = () => (orderMug && statusField ? [{ id: statusField, field_value: 'Ordered' }] : []);\nif (own) {\n  return [{ json: { contactId: contact.id, name, mug: own, alreadyHad: true, wasMember, orderMug, tags, fieldUpdates: [...perkStatuses(), ...orderUpdates()] } }];\n}\n\nconst taken = new Set();\nlet max = cfg.START_AFTER;\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    const n = parseInt(mugOf(c).replace(/\\D/g, ''), 10);\n    if (!n) continue;\n    taken.add(n);\n    if (n > max) max = n;\n  }\n}\n// GHL search can lag a few seconds behind; never reuse a number this workflow just gave out\nconst seen = $getWorkflowStaticData('global');\nif ((seen.lastMug || 0) > max) max = seen.lastMug;\n\nlet n = max + 1;\nwhile (taken.has(n) || cfg.SKIP.includes(n)) n++;\nseen.lastMug = n;\nif (n >= 10 ** cfg.MUG_DIGITS) throw new Error(`No ${cfg.MUG_DIGITS}-digit mug numbers left – raise MUG_DIGITS`);\nconst mug = String(n).padStart(cfg.MUG_DIGITS, '0');\nreturn [{ json: { contactId: contact.id, name, mug, alreadyHad: false, wasMember, orderMug, tags,\n  fieldUpdates: [{ id: cfg.FIELD_IDS.mugNumber, field_value: mug }, ...perkStatuses(), ...orderUpdates()] } }];"
+        "jsCode": "// Gives the new member the next free mug number (highest in GHL + 1).\n// A contact who already has one (member, or imported Toast guest) keeps it.\n// A new member also gets the mug ordered: status Requested (\"Ordered by Member\") and the tag that starts the vendor flow (workflow 9).\n// Perk statuses are only filled where empty, so perks already redeemed stay redeemed.\nconst cfg = $('Config').first().json;\nconst contact = $('Get Contact').first().json.contact || {};\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nconst name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email || contact.id;\nconst own = mugOf(contact);\nconst wasMember = (contact.tags || []).includes(cfg.MEMBER_TAG);\nconst current = {};\nfor (const f of contact.customFields || []) current[f.id] = f.value;\nconst available = (id) => (current[id] ? [] : [{ id, field_value: 'Available' }]);\nconst perkStatuses = () => [\n  ...available(cfg.FIELD_IDS.freePourStatus),\n  ...available(cfg.FIELD_IDS.fourPackStatus),\n  ...available(cfg.FIELD_IDS.merchStatus),\n  ...available(cfg.FIELD_IDS.mugPricingStatus),\n];\nconst isSet = (v) => v && !String(v).startsWith('REPLACE');\nconst statusField = isSet(cfg.MUG_STATUS_FIELD) ? cfg.MUG_STATUS_FIELD : '';\n// A mug is ordered for every new member, but not when someone signs up again or already has a mug status\nconst orderMug = !wasMember && !(statusField && current[statusField]);\nconst tags = [cfg.ASSIGNED_TAG, cfg.MEMBER_TAG, ...(orderMug ? [cfg.ORDERED_TAG] : [])];\nconst orderUpdates = () => (orderMug && statusField ? [{ id: statusField, field_value: 'Requested' }] : []);\nif (own) {\n  return [{ json: { contactId: contact.id, name, mug: own, alreadyHad: true, wasMember, orderMug, tags, fieldUpdates: [...perkStatuses(), ...orderUpdates()] } }];\n}\n\nconst taken = new Set();\nlet max = cfg.START_AFTER;\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    const n = parseInt(mugOf(c).replace(/\\D/g, ''), 10);\n    if (!n) continue;\n    taken.add(n);\n    if (n > max) max = n;\n  }\n}\n// GHL search can lag a few seconds behind; never reuse a number this workflow just gave out\nconst seen = $getWorkflowStaticData('global');\nif ((seen.lastMug || 0) > max) max = seen.lastMug;\n\nlet n = max + 1;\nwhile (taken.has(n) || cfg.SKIP.includes(n)) n++;\nseen.lastMug = n;\nif (n >= 10 ** cfg.MUG_DIGITS) throw new Error(`No ${cfg.MUG_DIGITS}-digit mug numbers left – raise MUG_DIGITS`);\nconst mug = String(n).padStart(cfg.MUG_DIGITS, '0');\nreturn [{ json: { contactId: contact.id, name, mug, alreadyHad: false, wasMember, orderMug, tags,\n  fieldUpdates: [{ id: cfg.FIELD_IDS.mugNumber, field_value: mug }, ...perkStatuses(), ...orderUpdates()] } }];"
       },
       "id": "64833c22-d907-4651-b1a2-ad0cd9771d5f",
       "name": "Pick Mug Number",
@@ -285,95 +285,6 @@
         2016,
         300
       ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "46a3d25d-8d13-4d72-a02d-572a463e2fc1",
-              "leftValue": "={{ $('Pick Mug Number').item.json.orderMug }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "ae24efa0-6ea1-460f-ae68-5ba919eee50e",
-      "name": "Order Mug?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        2240,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Mug order email for Arcane Engraving, sent from GHL. The wording lives in Config > ARCANE.\nconst cfg = $('Config').first().json;\nconst m = $('Pick Mug Number').first().json;\nconst a = cfg.ARCANE;\nif (!a.CONTACT_ID || a.CONTACT_ID.startsWith('REPLACE')) return []; // email not set up yet: nothing is sent\nconst fill = (s) => s.replace(/\\{mug\\}/g, m.mug).replace(/\\{name\\}/g, m.name).replace(/\\{date\\}/g, $now.toFormat('yyyy-MM-dd'));\nconst esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nreturn [{ json: { contactId: a.CONTACT_ID, subject: fill(a.SUBJECT), html: esc(fill(a.BODY)).replace(/\\n/g, '<br>') } }];"
-      },
-      "id": "a3c026ce-463b-4e3d-a247-b4effcf441a0",
-      "name": "Build Arcane Email",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2464,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://services.leadconnectorhq.com/conversations/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Version",
-              "value": "2021-04-15"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'Email', contactId: $json.contactId, subject: $json.subject, html: $json.html }) }}",
-        "options": {}
-      },
-      "id": "11a5096b-3ef3-43db-ae8f-90a067b05779",
-      "name": "Email Arcane",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2688,
-        200
-      ],
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "02x3PFajRyULMOOr",
-          "name": "Douq GHL"
-        }
-      },
-      "retryOnFail": true,
-      "maxTries": 4,
-      "waitBetweenTries": 5000
     }
   ],
   "connections": {
@@ -470,40 +381,6 @@
         [
           {
             "node": "Send Mug Number",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Mug Number": {
-      "main": [
-        [
-          {
-            "node": "Order Mug?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Order Mug?": {
-      "main": [
-        [
-          {
-            "node": "Build Arcane Email",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
-      ]
-    },
-    "Build Arcane Email": {
-      "main": [
-        [
-          {
-            "node": "Email Arcane",
             "type": "main",
             "index": 0
           }
