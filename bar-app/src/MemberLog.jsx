@@ -76,11 +76,13 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
               const cur = MUG_STATUSES.indexOf(member.mugStatus);
               const state = member.mugStatus === 'Cancelled' || cur < 0 ? '' : i < cur ? 'done' : i === cur ? 'current' : '';
               const allowed = canSetMugStatus(member.mugStatus, s);
+              const nextIdx = member.mugStatus === 'Cancelled' || cur < 0 ? 0 : cur + 1; // the step that comes next pulses
+              const isNext = i === nextIdx && allowed && !saving;
               return (
                 <li key={s} className={state}>
                   <button
                     type="button"
-                    className={`mug-step ${state}`}
+                    className={`mug-step ${state}${isNext ? ' next' : ''}`}
                     aria-current={state === 'current' ? 'step' : undefined}
                     disabled={!!saving || !allowed}
                     title={!allowed && state !== 'current' ? 'The status can only move forward' : undefined}
@@ -95,7 +97,7 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
           </ol>
           {member.mugStatus === 'Cancelled' ? (
             <p className="mug-cancelled-note">Order cancelled. Press the first step to order again.</p>
-          ) : canSetMugStatus(member.mugStatus, 'Cancelled') && (
+          ) : member.mugStatus && canSetMugStatus(member.mugStatus, 'Cancelled') && (
             <button
               type="button"
               className="mug-cancel"
