@@ -137,6 +137,7 @@ export default function Members({ pin, onAuthError }) {
     <section>
       {loading && <div className="progress" role="progressbar" aria-label="Loading" />}
       <div className="toolbar">
+        <h2 className="page-title">Essential <span>Members</span></h2>
         <input
           className="search"
           type="search"
@@ -171,7 +172,7 @@ export default function Members({ pin, onAuthError }) {
       )}
 
       {view === 'table' && visible.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap members-wrap">
           <table className="members-table">
             <thead>
               <tr>

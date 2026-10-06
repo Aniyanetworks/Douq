@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getMembers, AuthError, DEMO } from './api.js';
+import logo from './assets/logo.png';
 
 export default function Login({ onUnlock }) {
   const [pin, setPin] = useState('');
@@ -25,6 +26,7 @@ export default function Login({ onUnlock }) {
   return (
     <div className="login">
       <form onSubmit={submit} className="login-card">
+        <span className="logo-chip logo-chip-lg"><img src={logo} alt="Craft Mountain" /></span>
         <h1>Essential <span>Members</span></h1>
         <label htmlFor="pin">Staff PIN</label>
         <input

@@ -65,6 +65,8 @@ input, select {
 }
 
 /* ---------- layout ---------- */
+
+:root { --topbar-h: 79px; } /* header height: 58px logo box + 2 x 10px padding + border; the table header sticks right below it */
 .topbar {
   position: sticky;
   top: 0;
@@ -72,12 +74,17 @@ input, select {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 10px 5%; /* lines the logo up with the page content (main is 90% wide) */
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
-.brand { font-weight: 700; white-space: nowrap; }
-.brand span { color: var(--accent); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; }
+/* the logo has white lettering, so it always sits on a dark chip (also in the light theme) */
+.logo-chip { display: inline-flex; align-items: center; box-sizing: border-box; height: 58px; padding: 0 12px; background: #15120f; border: 1px solid var(--line); border-radius: 10px; } /* same height as the buttons */
+.logo-chip img { display: block; height: 48px; width: auto; }
+.logo-chip-lg { justify-self: center; height: auto; padding: 5px 10px; margin-bottom: 4px; }
+.logo-chip-lg img { height: 64px; }
+.topbar button { min-height: 38px; padding: 0 8px; } /* shorter header buttons */
 .tabs { display: flex; gap: 6px; margin-left: auto; }
 .tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .lock { margin-left: 6px; }
@@ -96,15 +103,18 @@ main { padding: 16px 0; width: 90%; margin: 0 auto; }
   border: 1px solid var(--line);
   border-radius: 16px;
 }
-.login-card h1 { margin: 0 0 8px; font-size: 24px; line-height: 1.2; }
+.login-card h1 { margin: 0 0 8px; font-size: 18px; line-height: 1.2; text-align: center; }
 .login-card h1 span { color: var(--accent); }
 .login-card input { font-size: 24px; letter-spacing: 6px; text-align: center; }
 .login-card button[type='submit'] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 .hint { margin: 0; color: var(--muted); font-size: 14px; text-align: center; }
 
 /* ---------- members ---------- */
-.toolbar { display: flex; gap: 8px; }
-.search { flex: 1; min-width: 0; font-size: 20px; }
+.toolbar { display: flex; gap: 8px; align-items: center; }
+.page-title { margin: 0; flex: 0 0 auto; font-size: 20px; font-weight: 700; white-space: nowrap; }
+.page-title span { color: var(--accent); }
+.page-title + .search { margin-left: auto; } /* title stays left; search, sort, view icons and Refresh sit at the right */
+.search { flex: 0 1 380px; min-width: 0; font-size: 20px; }
 .search.small { font-size: 16px; flex: 1 1 140px; }
 .sort { flex: 0 0 auto; }
 .load-more {
@@ -185,7 +195,7 @@ main { padding: 16px 0; width: 90%; margin: 0 auto; }
 .view-toggle button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
 .members-table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
-.members-table th { position: sticky; top: 0; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--panel); border-bottom: 1px solid var(--line); }
+.members-table th { position: sticky; top: var(--topbar-h); z-index: 1; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--panel); border-bottom: 1px solid var(--line); }
 .members-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
 .members-table tbody tr { cursor: pointer; }
 .members-table tbody tr:last-child td { border-bottom: 0; }
@@ -351,8 +361,15 @@ body.modal-open { overflow: hidden; }
 .mug-track .segmented { padding: 6px 0 0; }
 .mug-track .error { margin: 6px 0 0; font-size: 14px; }
 
+/* a scroll box would stop the table header sticking to the page, so only scroll sideways on narrower screens */
+.table-wrap.members-wrap { overflow: clip; }
+@media (max-width: 900px) {
+  .table-wrap.members-wrap { overflow-x: auto; }
+  .members-table th { top: 0; }
+}
 @media (max-width: 600px) {
   .toolbar { flex-wrap: wrap; }
+  .toolbar .page-title { flex: 1 1 100%; }
   .toolbar .search:not(.small) { flex: 1 1 100%; }
   .toolbar .sort { flex: 1 1 0; min-width: 0; }
   .modal-backdrop { padding: 0; align-items: end; }

@@ -4,6 +4,7 @@ import Login from './Login.jsx';
 import Members from './Members.jsx';
 import Log from './Log.jsx';
 import Reminders from './Reminders.jsx';
+import logo from './assets/logo.png';
 
 const TABS = [
   { key: 'members', label: 'Members', Page: Members },
@@ -35,7 +36,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          Essential <span>Members</span>
+          <span className="logo-chip"><img src={logo} alt="Craft Mountain" /></span>
         </div>
         <nav className="tabs">
           {TABS.map((t) => (
