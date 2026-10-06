@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getLog, MUG_STATUSES, canSetMugStatus, AuthError, readCache, cacheKey } from './api.js';
+import { getLog, MUG_STATUSES, mugStatusLabel, canSetMugStatus, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
 
 // Small coloured tag for a mug status; empty status shows a dash (table) or nothing
-export function MugBadge({ status, label }) {
+export function MugBadge({ status }) {
   if (!status) return <span className="mug-status s-none">–</span>;
-  return <span className={`mug-status s-${status.toLowerCase()}`}>{label ? `Mug ${status.toLowerCase()}` : status}</span>;
+  return <span className={`mug-status s-${status.toLowerCase()}`}>{mugStatusLabel(status)}</span>;
 }
 
 // Popup with one member's perk history. `member` needs mug + name; perks are shown when known.
@@ -84,7 +84,7 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
                   pickStatus(s);
                 }}
               >
-                {saving === s ? 'Saving…' : s}
+                {saving === s ? 'Saving…' : mugStatusLabel(s)}
               </button>
             ))}
           </div>

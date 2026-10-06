@@ -246,7 +246,7 @@ export default function Members({ pin, onAuthError }) {
               <div>
                 <div className="name">{m.name}</div>
                 <div className="contact">{m.phone || m.email}</div>
-                {m.mugStatus && <MugBadge status={m.mugStatus} label />}
+                {m.mugStatus && <MugBadge status={m.mugStatus} />}
               </div>
             </div>
             <ul className="perks">

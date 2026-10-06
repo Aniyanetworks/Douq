@@ -63,6 +63,17 @@ export const getMembers = async (pin) => writeCache(cacheKey.members(), await ca
 export const getLog = async (pin, from, to) => writeCache(cacheKey.log(from, to), await call('log', pin, { from, to }));
 export const MUG_STATUSES = ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'];
 
+// What staff see. The saved GHL values stay Requested / Ordered / Received / Delivered / Cancelled.
+// These names match the stages of the Member Mug pipeline in GHL.
+export const MUG_STATUS_LABELS = {
+  Requested: 'Ordered by Member',
+  Ordered: 'Order Processing by Vendor',
+  Received: 'Received by Bartender',
+  Delivered: 'Delivered to Member',
+  Cancelled: 'Cancelled',
+};
+export const mugStatusLabel = (s) => MUG_STATUS_LABELS[s] || s;
+
 // Status only moves forward. Cancelled can be set until the mug is delivered, and a cancelled order can only be requested again.
 export function canSetMugStatus(current, next) {
   if (!current) return true;

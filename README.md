@@ -89,7 +89,7 @@ Copy the subscription **Secret** from Toast into `TOAST_WEBHOOK_SECRET` and set 
 ## Mug orders (workflow 4 + bar site)
 When a new member gets a mug number, workflow 4 also:
 1. Sets **Mug Status** = `Ordered` (only if empty, and not for members who sign up again)
-2. Adds the tag `mug-ordered` → a GHL workflow on that tag sends the member "your mug is being made"
+2. Adds the tag `order processing by vendor` → a GHL workflow on that tag sends the member "your mug is being made"
 3. Emails the order to Arcane Engraving through GHL (Conversations API, no SMTP; wording in `Config > ARCANE`)
 
 Staff can also set `Requested` (a member asked for a mug, before it is ordered) and move the status on to `Received` and `Delivered` (or `Cancelled`) from the bar site (open a member → Mug status). Each change adds a note on the GHL contact.
@@ -103,3 +103,14 @@ The signup form has an optional "Add a spouse or partner" checkbox plus four Par
 3. A GHL workflow on the tag `partner-invited` runs for the partner: moves a card into the Partner Conversion pipeline (stage Invited) and sends the invite email.
 
 A partner who already has the `mug-club-member` tag is left alone. The invite is email-only: the partner has not given SMS consent.
+
+## Vendor mug orders (workflow 9)
+When a member's mug is ordered (status **Requested**, shown as "Ordered by Member"), the order goes to the vendor without the bartender. Every email and notification is sent by GHL:
+1. The vendor (Arcane Engraving) is a GHL **user** with a restricted role. The GHL workflow on the tag `ordered by member` posts the member's contact id to the `mug-order` webhook of workflow 9.
+2. Workflow 9 creates a signed **Start processing** link and saves it in the member's custom field **Vendor Order Link**.
+3. The GHL workflow waits a minute, then sends an **Internal Notification email** to the vendor user with the mug number, the member name and that link.
+4. The vendor opens the link and presses the confirm button. Workflow 9 sets the status to **Ordered** ("Order Processing by Vendor"), adds a note and the tag `order processing by vendor`, so the member message goes out from GHL.
+5. The bartender only marks **Received** and **Delivered** in the bar site.
+6. Follow-ups are plain GHL steps: wait 1 day and, if the status is still Requested, send "Reminder 1" to the vendor user (same link); wait again for "Reminder 2" and a notification to staff. Once the status changes, the If/Else stops them.
+
+Setup: create the member custom field **Vendor Order Link**, set its id, `SECRET` (30+ random characters) and the web address in the `CFG` and `CFG Confirm 2` nodes of workflow 9, and activate it.

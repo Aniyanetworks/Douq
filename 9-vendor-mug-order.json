@@ -1,0 +1,1071 @@
+{
+  "name": "09.Craft Mountain – Vendor Mug Order",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mug-order",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c357340f-0cd5-4c8f-bc5f-e51a7bb97536",
+      "name": "Mug Order Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "94759591-b964-4f96-a868-187896e5c939"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG - vendor mug orders (see README.md). Edit the SECRET, LINK_FIELD and BASE_URL in this node and in 'CFG Confirm 2' (same values).\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  BASE_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook', // production webhook base of this n8n\n  SECRET: 'CHANGE-ME-LONG-RANDOM-TEXT', // signs the vendor's link; use 30+ random characters, never share it\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH',\n  PROCESSING_STATUS: 'Ordered',       // saved value shown as \"Order Processing by Vendor\"\n  PROCESSING_TAG: 'order processing by vendor',      // GHL workflow on this tag tells the member the mug is being made\n  // Custom field on the MEMBER contact that holds the vendor's confirm link; the GHL workflow puts it in the email to the vendor.\n  LINK_FIELD: 'REPLACE_WITH_VENDOR_ORDER_LINK_FIELD_ID',\n}}];"
+      },
+      "id": "c96760b4-271e-41cc-83f6-671f7e26edca",
+      "name": "CFG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Mug Order Webhook').first().json.body.contact_id || $('Mug Order Webhook').first().json.body.contactId || $('Mug Order Webhook').first().json.body.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "770ebcf2-526e-4984-97c0-9cb117f250f9",
+      "name": "Get Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads the member's mug number; nothing is created when the order was already processed or cancelled.\nconst cfg = $('CFG').first().json;\nconst member = $('Get Member').first().json.contact || {};\nconst cf = {};\nfor (const f of member.customFields || []) cf[f.id] = f.value;\nconst mug = String(cf[cfg.MUG_FIELD] || '').trim();\nconst name = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email || member.id;\nconst set = (v) => v && !String(v).startsWith('REPLACE') && !String(v).startsWith('CHANGE-ME');\nif (!set(cfg.SECRET)) return [{ json: { skip: 'SECRET is not set in Config' } }];\nif (!set(cfg.LINK_FIELD)) return [{ json: { skip: 'LINK_FIELD is not set in Config' } }];\nif (!member.id) return [{ json: { skip: 'Member not found' } }];\nif (!mug) return [{ json: { skip: 'Member has no mug number yet' } }];\n// Follow-ups (reminders) and the first email stop once the vendor has confirmed, or the order was cancelled\nconst status = String(cf[cfg.MUG_STATUS_FIELD] || '');\nif (['Ordered', 'Received', 'Delivered', 'Cancelled'].includes(status)) return [{ json: { skip: `Mug status is already ${status}` } }];\nreturn [{ json: { skip: '', contactId: member.id, mug, name } }];"
+      },
+      "id": "cd2a2214-dde4-4437-93b2-542d140e7ef1",
+      "name": "Read Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c6925658-9d61-4d6a-8428-b34170e472bb",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "88599807-b5fb-4762-82e6-177148ef2b69",
+      "name": "Can Send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.contactId }}",
+        "dataPropertyName": "token",
+        "secret": "={{ $('CFG').first().json.SECRET }}",
+        "encoding": "hex"
+      },
+      "id": "75334198-f720-4b72-a5f2-b80255a0183c",
+      "name": "Sign Link",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The vendor's confirm link goes into a custom field on the MEMBER contact; the GHL workflow puts it in the email.\nconst cfg = $('CFG').first().json;\nconst d = $json;\nconst url = `${cfg.BASE_URL}/mug-processing?c=${encodeURIComponent(d.contactId)}&t=${encodeURIComponent(d.token)}`;\nreturn [{ json: { contactId: d.contactId, fields: [{ id: cfg.LINK_FIELD, field_value: url }] } }];"
+      },
+      "id": "b466b50f-8aee-4889-ae99-f78e8bc993eb",
+      "name": "Build Link Field",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: $json.fields }) }}"
+      },
+      "id": "f2a76365-3fe0-421a-a35b-9fa46fcfe877",
+      "name": "Save Link on Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        120
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Read Order').first().json.contactId }}/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: 'Mug order #' + $('Read Order').first().json.mug + ': link for the vendor created (waiting for the vendor to start processing)' }) }}"
+      },
+      "id": "f8f22dce-e40e-4550-bc2f-cfd6c9d2a10d",
+      "name": "Add Order Note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        120
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, sent: true }) }}",
+        "options": {}
+      },
+      "id": "ae52d51b-27bd-4b57-ae84-62030b8eedf5",
+      "name": "Order Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, sent: false, reason: $json.skip }) }}",
+        "options": {}
+      },
+      "id": "3c037642-21bb-442a-a44c-0b139efb03f4",
+      "name": "Order Skipped",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "mug-processing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c441b7a3-dd86-4780-9e71-bda504648fc9",
+      "name": "Processing Link Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        640
+      ],
+      "webhookId": "4a496054-cfb6-466c-921d-aa3c66025a2e"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only the web address is needed for the confirm page (keep it the same as in CFG).\nreturn [{ json: { BASE_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook' } }];"
+      },
+      "id": "774a3dab-d27b-4ef8-ab31-378630e39167",
+      "name": "CFG Confirm",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The page the vendor sees after clicking the email link. A button confirms (email scanners that only open the link change nothing).\nconst cfg = $('CFG Confirm').first().json;\nconst q = $('Processing Link Webhook').first().json.query || {};\nconst esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst html = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Confirm order</title></head>`\n  + `<body style=\"font-family:Arial,sans-serif;max-width:420px;margin:60px auto;padding:0 16px;text-align:center\">`\n  + `<h2>Start processing this mug order?</h2><p>This tells Craft Mountain the order is in progress.</p>`\n  + `<form method=\"POST\" action=\"${cfg.BASE_URL}/mug-processing-confirm\">`\n  + `<input type=\"hidden\" name=\"c\" value=\"${esc(q.c || '')}\"><input type=\"hidden\" name=\"t\" value=\"${esc(q.t || '')}\">`\n  + `<button type=\"submit\" style=\"padding:12px 22px;font-size:16px;background:#b5651d;color:#fff;border:0;border-radius:6px;cursor:pointer\">Yes, start processing</button></form></body></html>`;\nreturn [{ json: { html } }];"
+      },
+      "id": "8a1352c5-120a-4a5d-a54a-c539273bc0b9",
+      "name": "Confirm Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mug-processing-confirm",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cd8779d5-55c0-42eb-8a2e-4e1dc38b2f6c",
+      "name": "Confirm Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        960
+      ],
+      "webhookId": "302febed-a6b5-402c-b4ea-3cd174267ac0"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG - vendor mug orders (see README.md). Edit the SECRET, LINK_FIELD and BASE_URL in this node and in 'CFG Confirm 2' (same values).\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  BASE_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook', // production webhook base of this n8n\n  SECRET: 'CHANGE-ME-LONG-RANDOM-TEXT', // signs the vendor's link; use 30+ random characters, never share it\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH',\n  PROCESSING_STATUS: 'Ordered',       // saved value shown as \"Order Processing by Vendor\"\n  PROCESSING_TAG: 'order processing by vendor',      // GHL workflow on this tag tells the member the mug is being made\n  // Custom field on the MEMBER contact that holds the vendor's confirm link; the GHL workflow puts it in the email to the vendor.\n  LINK_FIELD: 'REPLACE_WITH_VENDOR_ORDER_LINK_FIELD_ID',\n}}];"
+      },
+      "id": "f0ba571e-215b-4852-b13a-ca6370936126",
+      "name": "CFG Confirm 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The vendor pressed the confirm button: read and check the link values.\nconst body = $('Confirm Webhook').first().json.body || {};\nconst contactId = String(body.c || '');\nconst given = String(body.t || '');\nconst valid = /^[A-Za-z0-9]{10,40}$/.test(contactId) && /^[a-f0-9]{64}$/.test(given);\nreturn [{ json: { valid, contactId, given } }];"
+      },
+      "id": "f012b1a4-20c5-4900-8c90-0dbe6f82480f",
+      "name": "Read Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9f99f241-58c4-4794-80ce-d9d402e82700",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8c33f0a8-c866-406b-b977-7e75a11bf662",
+      "name": "Link Format OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.contactId }}",
+        "dataPropertyName": "token",
+        "secret": "={{ $('CFG Confirm 2').first().json.SECRET }}",
+        "encoding": "hex"
+      },
+      "id": "46fcb2e4-ed40-4ca2-9bbc-c7fc9a7bf744",
+      "name": "Check Signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        896,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The signature must match the one we created when the order email was sent.\nconst given = $('Read Link').first().json.given;\nconst expected = String($json.token || '');\nlet diff = given.length === expected.length ? 0 : 1;\nfor (let i = 0; i < Math.min(given.length, expected.length); i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i);\nreturn [{ json: { ok: diff === 0 && expected.length === 64, contactId: $('Read Link').first().json.contactId } }];"
+      },
+      "id": "f3cb446d-c986-4c0e-9105-0f5add3ccf7e",
+      "name": "Compare Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1a2813b-6876-4103-a4f0-66586ba160a3",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f3c26262-4782-4ec9-a8dd-5d7dacc9f5f2",
+      "name": "Signature OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dcd2ec15-0bb0-40df-a36b-58f541174033",
+      "name": "Get Member Now",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        800
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only a member who has not been processed or cancelled yet moves to \"processing\".\nconst cfg = $('CFG Confirm 2').first().json;\nconst member = $json.contact || {};\nconst cf = {};\nfor (const f of member.customFields || []) cf[f.id] = f.value;\nconst status = String(cf[cfg.MUG_STATUS_FIELD] || '');\nif (!member.id) return [{ json: { proceed: false, page: 'invalid' } }];\nif (['Ordered', 'Received', 'Delivered'].includes(status)) return [{ json: { proceed: false, page: 'already' } }];\nif (status === 'Cancelled') return [{ json: { proceed: false, page: 'cancelled' } }];\nconst mug = String(cf[cfg.MUG_FIELD] || '').trim();\nreturn [{ json: { proceed: true, contactId: member.id, mug } }];"
+      },
+      "id": "6732cd19-48e5-4031-ba43-f3c780560e75",
+      "name": "Decide",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0fb895bf-90a0-47be-b346-95ba8c029219",
+              "leftValue": "={{ $json.proceed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0f805ad6-2b34-4bfb-a43b-fce756d430fb",
+      "name": "Can Process?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('CFG Confirm 2').first().json.MUG_STATUS_FIELD, field_value: $('CFG Confirm 2').first().json.PROCESSING_STATUS }] }) }}"
+      },
+      "id": "696e3386-79b8-421e-b9d8-fce268ec3d0b",
+      "name": "Save Processing Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        720
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Decide').first().json.contactId }}/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: 'Mug status: Ordered (the vendor started processing the order)' }) }}"
+      },
+      "id": "f6e2c109-101c-43c9-82ad-b12ad3161227",
+      "name": "Add Processing Note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        720
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Decide').first().json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('CFG Confirm 2').first().json.PROCESSING_TAG] }) }}"
+      },
+      "id": "397243f5-d308-4d3e-af2b-94d63ff01c2d",
+      "name": "Tag Processing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2688,
+        720
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { page: 'done' } }];"
+      },
+      "id": "1e9dbd14-348f-402a-9a1d-4da0f1129c1a",
+      "name": "Mark Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { page: 'invalid' } }];"
+      },
+      "id": "cb2198e8-8456-4fc7-926d-8506301273ca",
+      "name": "Mark Invalid",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Plain result page for the vendor.\nconst messages = {\n  done: ['Thank you!', 'The order is marked as processing.'],\n  already: ['Already confirmed', 'This order was already marked as processing. Nothing more to do.'],\n  cancelled: ['Order cancelled', 'This mug order was cancelled. Please do not process it.'],\n  invalid: ['Link not valid', 'This link is not valid or has changed. Please ask Craft Mountain to resend the order.'],\n};\nconst [title, text] = messages[$json.page] || messages.invalid;\nconst html = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>${title}</title></head>`\n  + `<body style=\"font-family:Arial,sans-serif;max-width:420px;margin:60px auto;padding:0 16px;text-align:center\"><h2>${title}</h2><p>${text}</p></body></html>`;\nreturn [{ json: { html } }];"
+      },
+      "id": "4b0380ed-66cb-4a58-b029-36dca93c1376",
+      "name": "Result Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4851209f-752e-4dad-b42e-823df5242166",
+      "name": "Respond HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3360,
+        880
+      ]
+    }
+  ],
+  "connections": {
+    "Mug Order Webhook": {
+      "main": [
+        [
+          {
+            "node": "CFG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG": {
+      "main": [
+        [
+          {
+            "node": "Get Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Member": {
+      "main": [
+        [
+          {
+            "node": "Read Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Order": {
+      "main": [
+        [
+          {
+            "node": "Can Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Can Send?": {
+      "main": [
+        [
+          {
+            "node": "Sign Link",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Order Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Link": {
+      "main": [
+        [
+          {
+            "node": "Build Link Field",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Link Field": {
+      "main": [
+        [
+          {
+            "node": "Save Link on Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Link on Member": {
+      "main": [
+        [
+          {
+            "node": "Add Order Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Order Note": {
+      "main": [
+        [
+          {
+            "node": "Order Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processing Link Webhook": {
+      "main": [
+        [
+          {
+            "node": "CFG Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG Confirm": {
+      "main": [
+        [
+          {
+            "node": "Confirm Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Page": {
+      "main": [
+        [
+          {
+            "node": "Respond HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Webhook": {
+      "main": [
+        [
+          {
+            "node": "CFG Confirm 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG Confirm 2": {
+      "main": [
+        [
+          {
+            "node": "Read Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Link": {
+      "main": [
+        [
+          {
+            "node": "Link Format OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link Format OK?": {
+      "main": [
+        [
+          {
+            "node": "Check Signature",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Signature": {
+      "main": [
+        [
+          {
+            "node": "Compare Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Signature": {
+      "main": [
+        [
+          {
+            "node": "Signature OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature OK?": {
+      "main": [
+        [
+          {
+            "node": "Get Member Now",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Member Now": {
+      "main": [
+        [
+          {
+            "node": "Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide": {
+      "main": [
+        [
+          {
+            "node": "Can Process?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Can Process?": {
+      "main": [
+        [
+          {
+            "node": "Save Processing Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Processing Status": {
+      "main": [
+        [
+          {
+            "node": "Add Processing Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Processing Note": {
+      "main": [
+        [
+          {
+            "node": "Tag Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Processing": {
+      "main": [
+        [
+          {
+            "node": "Mark Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Done": {
+      "main": [
+        [
+          {
+            "node": "Result Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Invalid": {
+      "main": [
+        [
+          {
+            "node": "Result Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result Page": {
+      "main": [
+        [
+          {
+            "node": "Respond HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false
+}
