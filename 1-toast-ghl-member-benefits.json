@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – edit these values after import (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  RESTAURANT_GUID: 'ca749399-db34-462a-8792-f6de561b240f', // Craft Mountain Brewing (Toast)\n  TIMEZONE: 'America/Denver',\n  IGNORE_TEST_MODE: false,      // set true after go-live so Toast Test Mode orders are skipped\n  VERIFY_SIGNATURE: false,      // set true once the Toast webhook secret is added below\n  TOAST_WEBHOOK_SECRET: '',     // Toast Web > Integrations > Webhooks > subscription > Secret\n  MUG_DIGITS: 5,                // \"37\" -> \"00037\"\n  // GHL \"Toast Event Lock\" object (primary field unique): each Toast perk event is processed once\n  EVENT_LOCK_OBJECT: 'custom_objects.toast_event_locks',\n  MEMBER_TAG: 'mug-club-member',   // only contacts with this tag are Mug Club members (guests also have mug numbers)\n  // Production URL of workflow 4 (New Member Mug Number) – assigns the mug number to members created from Toast guests\n  NEW_MEMBER_WEBHOOK_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook/new-member',\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n\n  // Toast item / discount GUID -> benefit key\n  BENEFITS: {\n    'e9a3cfc6-b806-4ded-8728-614227c8cb56': 'free_pour',\n    'c88b437d-f32d-443d-820b-3082ddd0260d': 'four_pack',    // 50% off 4-Pack\n    '9b216070-9c8b-4d37-ae41-fba6bdc33c77': 'initial_pour', // Initial Member Pour\n    '983ba063-e991-447f-83ef-9c3ce7ea0f3b': 'mug',          // Special Mug Pricing (24oz at 16oz)\n    '14281b9e-6aef-421a-b1c8-00885f4e95c4': 'merch',        // Merchandise 10%\n    'c4d8accd-1f31-443d-8689-a202f6e52b64': 'member_mug',   // Member Mug\n  },\n  // monthly = once per month, once = once ever, log = unlimited (note only)\n  BENEFIT_KINDS: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'monthly', merch: 'monthly', member_mug: 'log' },\n  BENEFIT_LABELS: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack', initial_pour: 'Initial Member Pour', mug: 'Special Mug Pricing (24oz beer at the 16oz price)', merch: 'Merchandise 10%', member_mug: 'Member Mug' },\n\n  // GHL custom field IDs (run the \"Helper – List GHL Custom Field IDs\" workflow to get them)\n  FIELD_IDS: { mugNumber: 'vWklTcHjmQV1tW52XIAb' },\n  BENEFIT_FIELDS: {\n    free_pour:    { period: 'sfwSQ746eytoaIErT1xL', status: 'nQ1XQVxK7dt5x2jkmzQK', date: 'Kzbwb0nNxFhlcNZoMrvP', orderId: 'd5zGuaAsujwiO4h3KMzm' },\n    four_pack:    { period: 'BpyqJNV3NHbz4mdskVzq', status: 'CPdRbUyVL44UpTcIOHzc', date: 'HmCaCCkzQGO0AE69ca22', orderId: 'Qx5rNt0TNh6GF9aZKoFn' },\n    initial_pour: { date: 'i9s94p3uVbJ8Gs5IrWHU', orderId: 'QPgwP99xNpVVXWB4w8iY' },\n    merch:        { period: 'KKeZG0ZINPUecpSVpyhG', status: 'hUof3kNaxMaSle2hym89', date: '4N9eBmteLZT32n7H26Di', orderId: 'aK57I3miSRJ2xdLBjU8O' },\n    mug:          { period: '72x0lCUx388Wko8MGSlC', status: 'wrl8FbQuiPNbEATFZcUY', date: 'NSE4Zsviw6HOoQkQB6t1', orderId: 'SaeAergSBjYbMNjW9eZu' },\n  },\n\n  // GHL \"Member Perks\" pipeline: one card per member, moved after each redemption\n  PIPELINE: {\n    id: 'ay4k4DUjXvvQaYnmmjIA',\n    stages: {\n      available: '10497e96-254f-471e-8571-66b59f4b1dc5', // Perks Available\n      free_pour: 'f9ba5617-2bbc-42cc-9c8f-3dce1ce5ce22', // Free Pour Used\n      four_pack: '73baf16f-e0d2-4d8c-a94b-b076b1b2d28e', // 4-Pack Used\n      merch: 'c54cd34a-4063-4b6e-b697-feda5185ca19',         // Merch Used (exactly one perk used: Merch 10%)\n      mug: 'b08fd9d0-1167-4faa-843a-153e83149b88',     // Mug Pricing Used (exactly one perk used: Mug Pricing)\n      several: '90ed770d-245b-41d6-9224-c261ecce2f65',     // Several Perks Used (2 or 3 of the 4 monthly perks used)\n      all: '160674ce-3c8f-4a07-976e-540f94f4fa69',       // All Perks Used (all 4 monthly perks used)\n      review: '0e44c91c-4012-4f75-b44a-1adae1a5650a',    // Needs Review\n    },\n  },\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – edit these values after import (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  RESTAURANT_GUID: 'ca749399-db34-462a-8792-f6de561b240f', // Craft Mountain Brewing (Toast)\n  TIMEZONE: 'America/Denver',\n  IGNORE_TEST_MODE: false,      // set true after go-live so Toast Test Mode orders are skipped\n  VERIFY_SIGNATURE: false,      // set true once the Toast webhook secret is added below\n  TOAST_WEBHOOK_SECRET: '',     // Toast Web > Integrations > Webhooks > subscription > Secret\n  MUG_DIGITS: 5,                // \"37\" -> \"00037\"\n  // GHL \"Toast Event Lock\" object (primary field unique): each Toast perk event is processed once\n  EVENT_LOCK_OBJECT: 'custom_objects.toast_event_locks',\n  MEMBER_TAG: 'mug-club-member',   // only contacts with this tag are Mug Club members (guests also have mug numbers)\n  // Production URL of workflow 4 (New Member Mug Number) – assigns the mug number to members created from Toast guests\n  NEW_MEMBER_WEBHOOK_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook/new-member',\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/fef6a874-f832-4a04-ae0a-60a31167e44e',\n\n  // Toast item / discount GUID -> benefit key\n  BENEFITS: {\n    'e9a3cfc6-b806-4ded-8728-614227c8cb56': 'free_pour',\n    'c88b437d-f32d-443d-820b-3082ddd0260d': 'four_pack',    // 50% off 4-Pack\n    '9b216070-9c8b-4d37-ae41-fba6bdc33c77': 'initial_pour', // Initial Member Pour\n    '983ba063-e991-447f-83ef-9c3ce7ea0f3b': 'mug',          // Special Mug Pricing (24oz at 16oz)\n    '14281b9e-6aef-421a-b1c8-00885f4e95c4': 'merch',        // Merchandise 10%\n    'c4d8accd-1f31-443d-8689-a202f6e52b64': 'member_mug',   // Member Mug\n  },\n  // monthly = once per month, once = once ever, log = unlimited (note only)\n  BENEFIT_KINDS: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'monthly', merch: 'monthly', member_mug: 'log' },\n  BENEFIT_LABELS: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack', initial_pour: 'Initial Member Pour', mug: 'Special Mug Pricing (24oz beer at the 16oz price)', merch: 'Merchandise 10%', member_mug: 'Member Mug' },\n\n  // A sale of the Member Mug starts the mug order when the member has no mug status yet (the tag starts the vendor flow, workflow 9)\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH',\n  MUG_ORDER_STATUS: 'Requested',          // shown as \"Ordered by Member\"\n  MUG_ORDER_TAG: 'ordered by member',\n\n  // GHL custom field IDs (run the \"Helper – List GHL Custom Field IDs\" workflow to get them)\n  FIELD_IDS: { mugNumber: 'vWklTcHjmQV1tW52XIAb' },\n  BENEFIT_FIELDS: {\n    free_pour:    { period: 'sfwSQ746eytoaIErT1xL', status: 'nQ1XQVxK7dt5x2jkmzQK', date: 'Kzbwb0nNxFhlcNZoMrvP', orderId: 'd5zGuaAsujwiO4h3KMzm' },\n    four_pack:    { period: 'BpyqJNV3NHbz4mdskVzq', status: 'CPdRbUyVL44UpTcIOHzc', date: 'HmCaCCkzQGO0AE69ca22', orderId: 'Qx5rNt0TNh6GF9aZKoFn' },\n    initial_pour: { date: 'i9s94p3uVbJ8Gs5IrWHU', orderId: 'QPgwP99xNpVVXWB4w8iY' },\n    merch:        { period: 'KKeZG0ZINPUecpSVpyhG', status: 'hUof3kNaxMaSle2hym89', date: '4N9eBmteLZT32n7H26Di', orderId: 'aK57I3miSRJ2xdLBjU8O' },\n    mug:          { period: '72x0lCUx388Wko8MGSlC', status: 'wrl8FbQuiPNbEATFZcUY', date: 'NSE4Zsviw6HOoQkQB6t1', orderId: 'SaeAergSBjYbMNjW9eZu' },\n  },\n\n  // GHL \"Member Perks\" pipeline: one card per member, moved after each redemption\n  PIPELINE: {\n    id: 'ay4k4DUjXvvQaYnmmjIA',\n    stages: {\n      available: '10497e96-254f-471e-8571-66b59f4b1dc5', // Perks Available\n      free_pour: 'f9ba5617-2bbc-42cc-9c8f-3dce1ce5ce22', // Free Pour Used\n      four_pack: '73baf16f-e0d2-4d8c-a94b-b076b1b2d28e', // 4-Pack Used\n      merch: 'c54cd34a-4063-4b6e-b697-feda5185ca19',         // Merch Used (exactly one perk used: Merch 10%)\n      mug: 'b08fd9d0-1167-4faa-843a-153e83149b88',     // Mug Pricing Used (exactly one perk used: Mug Pricing)\n      several: '90ed770d-245b-41d6-9224-c261ecce2f65',     // Several Perks Used (2 or 3 of the 4 monthly perks used)\n      all: '160674ce-3c8f-4a07-976e-540f94f4fa69',       // All Perks Used (all 4 monthly perks used)\n      review: '0e44c91c-4012-4f75-b44a-1adae1a5650a',    // Needs Review\n    },\n  },\n}}];"
       },
       "id": "a0e17e1c-2f17-447a-bbb8-d026482941df",
       "name": "Config",
@@ -93,7 +93,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Decides what to do for one benefit event, using the member found in GHL.\n// action: update | note | alert | ignore\nconst cfg = $('Config').first().json;\nconst ev = { ...$('Build Search').item.json };\nlet contacts = $json.contacts || [];\n// Notes say how the member was found when the tab had no mug number\nconst out = (o) => ({ json: { ...ev, ...o,\n  ...(o.note && ev.matchedBy ? { note: ev.matchedBy === 'new member'\n    ? `${o.note} – new member created from Toast order (joins the Mug Club)`\n    : `${o.note} – matched by ${ev.matchedBy} (no mug number on tab)` } : {}) } });\nconst label = cfg.BENEFIT_LABELS[ev.benefit] || ev.benefit;\nconst alertText = (msg) =>\n  `[Craft Mountain perks] ${msg} | ${label} | tab \"${ev.tabName}\" | check #${ev.displayNumber} | business date ${ev.businessDay} | Toast order ${ev.orderGuid}`;\n\n// Member picked by \"Resolve Member\" (by mug number, email, phone, name, or created from the Toast guest)\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nev.matchedBy = $json.matchedBy || '';\nif (!ev.mug) {\n  if (contacts.length === 1) {\n    ev.mug = mugOf(contacts[0]); // empty for a member just created – workflow 4 assigns the number\n  } else if (contacts.length > 1) {\n    return ev.type === 'redeem'\n      ? out({ action: 'alert', alertType: 'ambiguous_name', alertText: alertText(`No mug number on the tab and ${contacts.length} members match \"${ev.tabName || ev.customerName}\" – add the mug number in GHL by hand`) })\n      : out({ action: 'ignore' });\n  } else {\n    return ev.type === 'redeem'\n      ? out({ action: 'alert', alertType: 'no_mug', alertText: alertText('Benefit rung up WITHOUT a mug number in the tab name (no member matched by name, email or phone)') })\n      : out({ action: 'ignore' });\n  }\n}\nif (contacts.length === 0) {\n  return ev.type === 'redeem'\n    ? out({ action: 'alert', alertType: 'no_member', alertText: alertText(`No member found with mug number ${ev.mug}`) })\n    : out({ action: 'ignore' });\n}\nif (contacts.length > 1) {\n  return out({ action: 'alert', alertType: 'duplicate_mug', alertText: alertText(`More than one member has mug number ${ev.mug} – fix in GHL`) });\n}\n\nconst c = contacts[0];\nconst name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.contactName || c.email || c.id;\nconst cf = {};\nfor (const f of c.customFields || []) cf[f.id] = f.value;\nconst val = (id) => {\n  const v = cf[id];\n  if (v === undefined || v === null) return '';\n  return Array.isArray(v) ? v.join(',') : String(v);\n};\nconst f = cfg.BENEFIT_FIELDS[ev.benefit] || {};\n// Mug Club members only. A guest found through the Toast guest lookup or by name (or just created) joins the club:\n// the perk is recorded and workflow 4 adds the member tag. A guest rung up by mug number alone is flagged.\nconst isMember = (c.tags || []).includes(cfg.MEMBER_TAG);\nconst enroll = !isMember && !!ev.matchedBy;\nif (!isMember && !enroll && ev.type === 'redeem') {\n  return out({ contactId: c.id, memberName: name, action: 'alert', alertType: 'not_member',\n    alertText: alertText(`${name} (mug ${ev.mug}) is not a Mug Club member – perk not recorded`) });\n}\nconst base = { contactId: c.id, memberName: name, memberFields: cf, enroll }; // memberFields: perk statuses before this update\n\n// ---- Monthly perks (free pour, 4-pack, merch, mug pricing) ----\nif (ev.benefitKind === 'monthly') {\n  const sameOrder = val(f.orderId) === ev.orderGuid;\n  if (ev.type === 'void') {\n    if (!sameOrder) return out({ ...base, action: 'ignore' });\n    return out({ ...base, action: 'update',\n      fieldUpdates: [\n        { id: f.status, field_value: 'Available' },\n        { id: f.period, field_value: '' },\n        { id: f.orderId, field_value: '' },\n      ],\n      note: `${label} REVERTED (voided in Toast) – period ${ev.period} – Toast order ${ev.orderGuid}` });\n  }\n  if (sameOrder) return out({ ...base, action: 'ignore' }); // Toast re-sent the same order\n  if (val(f.period) === ev.period && val(f.status) === 'Redeemed') {\n    return out({ ...base, action: 'alert', alertType: 'double',\n      alertText: alertText(`${name} (mug ${ev.mug}) already used ${label} for ${ev.period}`) });\n  }\n  return out({ ...base, action: 'update',\n    fieldUpdates: [\n      { id: f.period, field_value: ev.period },\n      { id: f.status, field_value: 'Redeemed' },\n      { id: f.date, field_value: ev.businessDay },\n      { id: f.orderId, field_value: ev.orderGuid },\n    ],\n    note: `${label} redeemed – period ${ev.period} – check #${ev.displayNumber} – Toast order ${ev.orderGuid}` });\n}\n\n// ---- One-time perks (initial member pour) ----\nif (ev.benefitKind === 'once') {\n  const sameOrder = val(f.orderId) === ev.orderGuid;\n  if (ev.type === 'void') {\n    if (!sameOrder) return out({ ...base, action: 'ignore' });\n    return out({ ...base, action: 'update',\n      fieldUpdates: [{ id: f.date, field_value: '' }, { id: f.orderId, field_value: '' }],\n      note: `${label} REVERTED (voided in Toast) – Toast order ${ev.orderGuid}` });\n  }\n  if (sameOrder) return out({ ...base, action: 'ignore' });\n  if (val(f.date)) {\n    return out({ ...base, action: 'alert', alertType: 'double',\n      alertText: alertText(`${name} (mug ${ev.mug}) already received the ${label} on ${val(f.date).slice(0, 10)}`) });\n  }\n  return out({ ...base, action: 'update',\n    fieldUpdates: [{ id: f.date, field_value: ev.businessDay }, { id: f.orderId, field_value: ev.orderGuid }],\n    note: `${label} redeemed – check #${ev.displayNumber} – Toast order ${ev.orderGuid}` });\n}\n\n// ---- Unlimited perks (member mug): log a note once per item ----\nif (ev.type === 'void') return out({ ...base, action: 'ignore' });\nconst seen = $getWorkflowStaticData('global');\nseen.logged = seen.logged || {};\nif (seen.logged[ev.selectionGuid]) return out({ ...base, action: 'ignore' });\nseen.logged[ev.selectionGuid] = Date.now();\nconst cutoff = Date.now() - 60 * 24 * 3600 * 1000; // keep 60 days\nfor (const k of Object.keys(seen.logged)) if (seen.logged[k] < cutoff) delete seen.logged[k];\nreturn out({ ...base, action: 'note',\n  note: `${label} used – check #${ev.displayNumber} – business date ${ev.businessDay} – Toast order ${ev.orderGuid}` });"
+        "jsCode": "// Decides what to do for one benefit event, using the member found in GHL.\n// action: update | note | alert | ignore\nconst cfg = $('Config').first().json;\nconst ev = { ...$('Build Search').item.json };\nlet contacts = $json.contacts || [];\n// Notes say how the member was found when the tab had no mug number\nconst out = (o) => ({ json: { ...ev, ...o,\n  ...(o.note && ev.matchedBy ? { note: ev.matchedBy === 'new member'\n    ? `${o.note} – new member created from Toast order (joins the Mug Club)`\n    : `${o.note} – matched by ${ev.matchedBy} (no mug number on tab)` } : {}) } });\nconst label = cfg.BENEFIT_LABELS[ev.benefit] || ev.benefit;\nconst alertText = (msg) =>\n  `[Craft Mountain perks] ${msg} | ${label} | tab \"${ev.tabName}\" | check #${ev.displayNumber} | business date ${ev.businessDay} | Toast order ${ev.orderGuid}`;\n\n// Member picked by \"Resolve Member\" (by mug number, email, phone, name, or created from the Toast guest)\nconst mugOf = (c) => {\n  const f = (c.customFields || []).find(x => x.id === cfg.FIELD_IDS.mugNumber);\n  return f && f.value ? String(f.value).trim() : '';\n};\nev.matchedBy = $json.matchedBy || '';\nif (!ev.mug) {\n  if (contacts.length === 1) {\n    ev.mug = mugOf(contacts[0]); // empty for a member just created – workflow 4 assigns the number\n  } else if (contacts.length > 1) {\n    return ev.type === 'redeem'\n      ? out({ action: 'alert', alertType: 'ambiguous_name', alertText: alertText(`No mug number on the tab and ${contacts.length} members match \"${ev.tabName || ev.customerName}\" – add the mug number in GHL by hand`) })\n      : out({ action: 'ignore' });\n  } else {\n    return ev.type === 'redeem'\n      ? out({ action: 'alert', alertType: 'no_mug', alertText: alertText('Benefit rung up WITHOUT a mug number in the tab name (no member matched by name, email or phone)') })\n      : out({ action: 'ignore' });\n  }\n}\nif (contacts.length === 0) {\n  return ev.type === 'redeem'\n    ? out({ action: 'alert', alertType: 'no_member', alertText: alertText(`No member found with mug number ${ev.mug}`) })\n    : out({ action: 'ignore' });\n}\nif (contacts.length > 1) {\n  return out({ action: 'alert', alertType: 'duplicate_mug', alertText: alertText(`More than one member has mug number ${ev.mug} – fix in GHL`) });\n}\n\nconst c = contacts[0];\nconst name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.contactName || c.email || c.id;\nconst cf = {};\nfor (const f of c.customFields || []) cf[f.id] = f.value;\nconst val = (id) => {\n  const v = cf[id];\n  if (v === undefined || v === null) return '';\n  return Array.isArray(v) ? v.join(',') : String(v);\n};\nconst f = cfg.BENEFIT_FIELDS[ev.benefit] || {};\n// Mug Club members only. A guest found through the Toast guest lookup or by name (or just created) joins the club:\n// the perk is recorded and workflow 4 adds the member tag. A guest rung up by mug number alone is flagged.\nconst isMember = (c.tags || []).includes(cfg.MEMBER_TAG);\nconst enroll = !isMember && !!ev.matchedBy;\nif (!isMember && !enroll && ev.type === 'redeem') {\n  return out({ contactId: c.id, memberName: name, action: 'alert', alertType: 'not_member',\n    alertText: alertText(`${name} (mug ${ev.mug}) is not a Mug Club member – perk not recorded`) });\n}\nconst base = { contactId: c.id, memberName: name, memberFields: cf, enroll }; // memberFields: perk statuses before this update\n\n// ---- Monthly perks (free pour, 4-pack, merch, mug pricing) ----\nif (ev.benefitKind === 'monthly') {\n  const sameOrder = val(f.orderId) === ev.orderGuid;\n  if (ev.type === 'void') {\n    if (!sameOrder) return out({ ...base, action: 'ignore' });\n    return out({ ...base, action: 'update',\n      fieldUpdates: [\n        { id: f.status, field_value: 'Available' },\n        { id: f.period, field_value: '' },\n        { id: f.orderId, field_value: '' },\n      ],\n      note: `${label} REVERTED (voided in Toast) – period ${ev.period} – Toast order ${ev.orderGuid}` });\n  }\n  if (sameOrder) return out({ ...base, action: 'ignore' }); // Toast re-sent the same order\n  if (val(f.period) === ev.period && val(f.status) === 'Redeemed') {\n    return out({ ...base, action: 'alert', alertType: 'double',\n      alertText: alertText(`${name} (mug ${ev.mug}) already used ${label} for ${ev.period}`) });\n  }\n  return out({ ...base, action: 'update',\n    fieldUpdates: [\n      { id: f.period, field_value: ev.period },\n      { id: f.status, field_value: 'Redeemed' },\n      { id: f.date, field_value: ev.businessDay },\n      { id: f.orderId, field_value: ev.orderGuid },\n    ],\n    note: `${label} redeemed – period ${ev.period} – check #${ev.displayNumber} – Toast order ${ev.orderGuid}` });\n}\n\n// ---- One-time perks (initial member pour) ----\nif (ev.benefitKind === 'once') {\n  const sameOrder = val(f.orderId) === ev.orderGuid;\n  if (ev.type === 'void') {\n    if (!sameOrder) return out({ ...base, action: 'ignore' });\n    return out({ ...base, action: 'update',\n      fieldUpdates: [{ id: f.date, field_value: '' }, { id: f.orderId, field_value: '' }],\n      note: `${label} REVERTED (voided in Toast) – Toast order ${ev.orderGuid}` });\n  }\n  if (sameOrder) return out({ ...base, action: 'ignore' });\n  if (val(f.date)) {\n    return out({ ...base, action: 'alert', alertType: 'double',\n      alertText: alertText(`${name} (mug ${ev.mug}) already received the ${label} on ${val(f.date).slice(0, 10)}`) });\n  }\n  return out({ ...base, action: 'update',\n    fieldUpdates: [{ id: f.date, field_value: ev.businessDay }, { id: f.orderId, field_value: ev.orderGuid }],\n    note: `${label} redeemed – check #${ev.displayNumber} – Toast order ${ev.orderGuid}` });\n}\n\n// ---- Unlimited perks (member mug): log a note once per item ----\nif (ev.type === 'void') return out({ ...base, action: 'ignore' });\nconst seen = $getWorkflowStaticData('global');\nseen.logged = seen.logged || {};\nif (seen.logged[ev.selectionGuid]) return out({ ...base, action: 'ignore' });\nseen.logged[ev.selectionGuid] = Date.now();\nconst cutoff = Date.now() - 60 * 24 * 3600 * 1000; // keep 60 days\nfor (const k of Object.keys(seen.logged)) if (seen.logged[k] < cutoff) delete seen.logged[k];\n// The Member Mug sale starts the mug order when the member has no mug status yet\nif (ev.benefit === 'member_mug' && cfg.MUG_STATUS_FIELD && !val(cfg.MUG_STATUS_FIELD)) {\n  return out({ ...base, action: 'update', mugOrder: true,\n    fieldUpdates: [{ id: cfg.MUG_STATUS_FIELD, field_value: cfg.MUG_ORDER_STATUS }],\n    note: `${label} used – check #${ev.displayNumber} – business date ${ev.businessDay} – Toast order ${ev.orderGuid} – mug order started (Ordered by Member)` });\n}\nreturn out({ ...base, action: 'note',\n  note: `${label} used – check #${ev.displayNumber} – business date ${ev.businessDay} – Toast order ${ev.orderGuid}` });"
       },
       "id": "49d6eb70-fff4-41dd-9871-ebd6fc49e076",
       "name": "Decide Action",
@@ -841,6 +841,82 @@
         -60272,
         29280
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3f5b0609-db0a-42dc-8989-6f0b99f1c73c",
+              "leftValue": "={{ !!$('Decide Action').item.json.mugOrder }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8b083449-6667-4d11-8e15-332b1836744d",
+      "name": "Needs Mug Order?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -58896,
+        29888
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Decide Action').item.json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.MUG_ORDER_TAG] }) }}",
+        "options": {}
+      },
+      "id": "0fa31a9c-1448-41d1-90a6-d028c5b695ee",
+      "name": "Start Mug Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -58672,
+        29808
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
@@ -945,6 +1021,11 @@
         [
           {
             "node": "Pick Stage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Needs Mug Order?",
             "type": "main",
             "index": 0
           }
@@ -1191,6 +1272,18 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Needs Mug Order?": {
+      "main": [
+        [
+          {
+            "node": "Start Mug Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },

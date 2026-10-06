@@ -87,14 +87,13 @@ Copy the subscription **Secret** from Toast into `TOAST_WEBHOOK_SECRET` and set 
 - Insider / VIP tiers: add their items to `BENEFITS`, `BENEFIT_KINDS` and `BENEFIT_FIELDS` when they launch.
 
 ## Mug orders (workflow 4 + bar site)
-When a new member gets a mug number, workflow 4 also:
-1. Sets **Mug Status** = `Requested` (shown as "Ordered by Member"; only if empty, and not for members who sign up again)
-2. Adds the tag `ordered by member` → the GHL workflow on that tag sends the order to the vendor (see **Vendor mug orders**, workflow 9)
-The vendor is emailed by GHL with a confirm link, and the status moves to `Ordered` ("Order Processing by Vendor") when the vendor confirms.
+A new member gets a mug **number** from workflow 4, but no mug is ordered automatically. When a member wants one, staff open the member in the bar site and press the first step of the **Mug Order Pipeline** ("Ordered by Member"). That sets Mug Status = `Requested` and the tag `ordered by member`, which starts the vendor flow (see **Vendor mug orders**, workflow 9).
 
-Staff can also set `Requested` (a member asked for a mug, before it is ordered) and move the status on to `Received` and `Delivered` (or `Cancelled`) from the bar site (open a member → Mug status). Each change adds a note on the GHL contact.
+A Toast sale of the **Member Mug** item also starts the order (workflow 1), but only when the member has no mug status yet.
 
-Setup: create the **Mug Status** dropdown field in GHL (`Requested`, `Ordered`, `Received`, `Delivered`, `Cancelled`), then paste its ID into `MUG_STATUS_FIELD` in the Config node of workflows 4 and 6. Create a GHL contact for Arcane Engraving (with their order email address) and paste its ID into `ARCANE.CONTACT_ID`. The private integration token needs the `conversations/message.write` scope.
+Staff then move the pipeline on to `Received` and `Delivered` (or `Cancelled`) from the bar site; the vendor's confirm link moves it to `Ordered` ("Order Processing by Vendor").
+
+Setup: create the **Mug Status** dropdown field in GHL (`Requested`, `Ordered`, `Received`, `Delivered`, `Cancelled`), then paste its ID into `MUG_STATUS_FIELD` in the Config node of workflow 6.
 
 ## Partner invite (workflow 8)
 The signup form has an optional "Add a spouse or partner" checkbox plus four Partner fields. When it is ticked:
