@@ -70,8 +70,8 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
 
       {onMugStatus && member.id && (
         <div className="mug-track">
-          <span className="mug-track-label">Mug status</span>
-          <ol className="mug-pipeline" aria-label="Mug status">
+          <span className="mug-track-label">Mug Order Pipeline</span>
+          <ol className="mug-pipeline" aria-label="Mug Order Pipeline">
             {STEPS.map((s, i) => {
               const cur = MUG_STATUSES.indexOf(member.mugStatus);
               const state = member.mugStatus === 'Cancelled' || cur < 0 ? '' : i < cur ? 'done' : i === cur ? 'current' : '';
