@@ -300,5 +300,9 @@
   "pinData": {},
   "meta": {
     "instanceId": "5ed296676961c5ed41c639e1683078855c8f50e4c5aa1466963b063405345b3e"
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver"
   }
 }
