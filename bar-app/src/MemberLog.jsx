@@ -10,6 +10,8 @@ export function MugBadge({ status }) {
   return <span className={`mug-status s-${status.toLowerCase()}`}>{mugStatusLabel(status)}</span>;
 }
 
+const STEPS = MUG_STATUSES.filter((s) => s !== 'Cancelled'); // the pipeline steps; Cancelled has its own button
+
 // Popup with one member's perk history. `member` needs mug + name; perks are shown when known.
 export default function MemberLog({ pin, member, onClose, onAuthError, onMugStatus }) {
   const [saving, setSaving] = useState('');
@@ -69,25 +71,40 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
       {onMugStatus && member.id && (
         <div className="mug-track">
           <span className="mug-track-label">Mug status</span>
-          <div className="segmented" role="group" aria-label="Mug status">
-            {MUG_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={member.mugStatus === s ? 'active' : ''}
-                aria-pressed={member.mugStatus === s}
-                disabled={!!saving || (member.mugStatus !== s && !canSetMugStatus(member.mugStatus, s))}
-                title={member.mugStatus !== s && !canSetMugStatus(member.mugStatus, s) ? 'The status can only move forward' : undefined}
-                onClick={() => {
-                  if (!canSetMugStatus(member.mugStatus, s)) return;
-                  if (s === 'Cancelled' && !window.confirm(`Cancel the mug order for #${member.mug} ${member.name}?`)) return;
-                  pickStatus(s);
-                }}
-              >
-                {saving === s ? 'Saving…' : mugStatusLabel(s)}
-              </button>
-            ))}
-          </div>
+          <ol className="mug-pipeline" aria-label="Mug status">
+            {STEPS.map((s, i) => {
+              const cur = MUG_STATUSES.indexOf(member.mugStatus);
+              const state = member.mugStatus === 'Cancelled' || cur < 0 ? '' : i < cur ? 'done' : i === cur ? 'current' : '';
+              const allowed = canSetMugStatus(member.mugStatus, s);
+              return (
+                <li key={s} className={state}>
+                  <button
+                    type="button"
+                    className={`mug-step ${state}`}
+                    aria-current={state === 'current' ? 'step' : undefined}
+                    disabled={!!saving || !allowed}
+                    title={!allowed && state !== 'current' ? 'The status can only move forward' : undefined}
+                    onClick={() => allowed && pickStatus(s)}
+                  >
+                    <span className="step-dot">{saving === s ? '…' : state === 'done' ? '✓' : i + 1}</span>
+                    <span className="step-label">{mugStatusLabel(s)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+          {member.mugStatus === 'Cancelled' ? (
+            <p className="mug-cancelled-note">Order cancelled. Press the first step to order again.</p>
+          ) : canSetMugStatus(member.mugStatus, 'Cancelled') && (
+            <button
+              type="button"
+              className="mug-cancel"
+              disabled={!!saving}
+              onClick={() => window.confirm(`Cancel the mug order for #${member.mug} ${member.name}?`) && pickStatus('Cancelled')}
+            >
+              Cancel order
+            </button>
+          )}
           {statusError && <p className="error">{statusError}</p>}
         </div>
       )}

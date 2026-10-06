@@ -353,6 +353,22 @@ body.modal-open { overflow: hidden; }
 .mug-status.s-delivered { background: var(--good-bg); color: var(--good); }
 .mug-status.s-cancelled { background: var(--bad-bg); color: var(--bad); }
 .mug-status.s-none { padding: 0; color: var(--muted); font-weight: 400; }
+/* mug status shown as a pipeline: numbered steps joined by a line */
+.mug-pipeline { display: flex; list-style: none; margin: 10px 0 0; padding: 0; }
+.mug-pipeline li { position: relative; flex: 1; }
+.mug-pipeline li:not(:last-child)::after { content: ''; position: absolute; top: 17px; left: calc(50% + 22px); right: calc(-50% + 22px); height: 2px; background: var(--line); }
+.mug-pipeline li.done:not(:last-child)::after { background: var(--good); }
+.mug-step { display: grid; justify-items: center; align-content: start; gap: 6px; width: 100%; min-height: 0; padding: 0 4px; border: 0; background: transparent; color: var(--muted); font-size: 13px; line-height: 1.25; text-align: center; }
+.step-dot { display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--line); border-radius: 50%; background: var(--panel); font-size: 14px; font-weight: 700; }
+.mug-step.done .step-dot { color: var(--good); background: var(--good-bg); border-color: var(--good); }
+.mug-step.current .step-dot { color: #fff; background: var(--accent); border-color: var(--accent); }
+.mug-step.current .step-label { color: var(--ink); font-weight: 600; }
+.mug-step:not(:disabled):hover .step-dot { border-color: var(--accent); }
+.mug-step:disabled { cursor: not-allowed; opacity: 1; }
+.mug-step:disabled:not(.done):not(.current) { opacity: 0.55; }
+.mug-cancel { margin-top: 12px; min-height: 34px; padding: 0 14px; color: var(--bad); background: transparent; border-color: var(--bad-bg); font-size: 13px; }
+.mug-cancel:hover { background: var(--bad-bg); }
+.mug-cancelled-note { margin: 12px 0 0; padding: 8px 12px; color: var(--bad); background: var(--bad-bg); border-radius: 8px; font-size: 14px; }
 .mug-track { padding: 12px 16px 14px; border-bottom: 1px solid var(--line); }
 .mug-track .segmented { flex-wrap: wrap; }
 .mug-track .segmented button { flex: 1 1 0; min-width: 84px; padding: 6px 8px; line-height: 1.2; }
