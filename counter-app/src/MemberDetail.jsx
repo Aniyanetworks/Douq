@@ -59,13 +59,24 @@ export default function MemberDetail({ pin, member, onAuthError, onMugStatus }) 
       </div>
 
       <div className="benefits">
-        {member.perks.map((p) => (
-          <div className="benefit" key={p.key}>
-            <span className={p.used ? 'used' : 'available'}>{p.used ? `● Used ${shortDay(p.date)}` : '● Available this month'}</span>
-            <h3>{p.label}</h3>
-            <p>{PERK_TEXT[p.key] || ''}</p>
-          </div>
-        ))}
+        {member.perks.map((p) => {
+          // when and at which check this perk was used: the matching perk-log entry
+          const rec = p.used && (log || []).find((r) => r.perk === p.label && (r.event === 'redeem' || r.event === 'used') && r.businessDay === p.date);
+          return (
+            <div className="benefit" key={p.key}>
+              <span className={p.used ? 'used' : 'available'}>{p.used ? '● Used this month' : '● Available this month'}</span>
+              <h3>{p.label}</h3>
+              <p>
+                {p.used
+                  ? (rec ? `Recorded ${dateTime(rec.loggedAt)}${rec.checkNumber ? ` · check #${rec.checkNumber}` : ''}` : `Recorded ${shortDay(p.date)}`)
+                  : PERK_TEXT[p.key] || ''}
+              </p>
+              <div className={p.used ? 'benefit-btn' : 'benefit-btn open'} aria-disabled="true">
+                {p.used ? 'Already redeemed' : 'Not redeemed yet'}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="row">

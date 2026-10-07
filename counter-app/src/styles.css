@@ -146,6 +146,10 @@ h2.section-title { display: flex; align-items: center; gap: 10px; }
 .benefit { background: var(--panel-soft); border: 1px solid #e3e7da; border-radius: 12px; padding: 21px; }
 .benefit h3 { margin: 8px 0; font-size: 20px; }
 .benefit p { margin: 0; }
+.benefit { display: flex; flex-direction: column; }
+.benefit-btn { margin-top: auto; padding: 13px 18px; border-radius: 9px; text-align: center; background: #e3e9e2; color: #5b7164; }
+.benefit-btn.open { background: #4a8a70; color: #fff; }
+.benefit p { margin-bottom: 13px; }
 .available { color: var(--ok); font-size: 13px; }
 .used { color: var(--used); font-size: 13px; }
 
