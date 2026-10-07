@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { withRetry, getLog, AuthError, readCache, cacheKey } from './api.js';
-import { dateTime, eventInfo, isAlert, todayYmd, EVENTS } from './format.js';
-import { LogRowsSkeleton } from './Skeleton.jsx';
-import MemberLog from './MemberLog.jsx';
+import { withRetry, getLog, AuthError, readCache, cacheKey } from '../../bar-app/src/api.js';
+import { dateTime, eventInfo, isAlert, todayYmd, EVENTS } from '../../bar-app/src/format.js';
 
 const firstOfMonth = () => `${todayYmd().slice(0, 8)}01`;
 
 const toCsv = (rows) => {
   const cols = ['loggedAt', 'businessDay', 'mug', 'member', 'perk', 'event', 'checkNumber', 'orderId', 'detail'];
-  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const esc = (v) => `"${String(v ?? '').replace(/^[=+@-]/, "'").replace(/"/g, '""')}"`; // a leading = + @ - would run as a formula in Excel
   return [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\r\n');
 };
 
-export default function Log({ pin, onAuthError }) {
+// Perk log: redemptions, voids and alerts for a date range, with filters, totals and CSV export.
+export default function Activity({ pin, onAuthError, onOpenMember }) {
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(todayYmd);
   const [rows, setRows] = useState(null);
@@ -21,13 +20,11 @@ export default function Log({ pin, onAuthError }) {
   const [event, setEvent] = useState('all');
   const [perk, setPerk] = useState('all');
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState(null);
-  const closeLog = useCallback(() => setSelected(null), []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (fresh = false) => { // opening the tab reuses an answer under 30 seconds old; Refresh always asks again
     setLoading(true);
     try {
-      const res = await withRetry(() => getLog(pin, from, to));
+      const res = await withRetry(() => getLog(pin, from, to, { maxAge: fresh ? 0 : 30_000 }));
       setRows(res.log || []);
       setError('');
     } catch (err) {
@@ -38,7 +35,7 @@ export default function Log({ pin, onAuthError }) {
     }
   }, [pin, from, to, onAuthError]);
 
-  // Show the cached log for these dates at once, then refresh it
+  // The cached log for these dates shows at once, then a fresh copy loads
   useEffect(() => {
     const cached = readCache(cacheKey.log(from, to));
     setRows(cached ? cached.data.log || [] : null);
@@ -69,17 +66,20 @@ export default function Log({ pin, onAuthError }) {
   }, [shown]);
 
   const exportCsv = () => {
-    const blob = new Blob([toCsv(shown)], { type: 'text/csv' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = URL.createObjectURL(new Blob([toCsv(shown)], { type: 'text/csv' }));
     a.download = `perk-log_${from}_to_${to}.csv`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
 
   return (
-    <section>
-      {loading && <div className="progress" role="progressbar" aria-label="Loading" />}
+    <section className="panel">
+      <div className="row">
+        <h2>Benefit activity</h2>
+        <button className="secondary" onClick={exportCsv} disabled={!shown.length}>Export CSV</button>
+      </div>
+
       <div className="filters">
         <label>From <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} /></label>
         <label>To <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label>
@@ -96,51 +96,56 @@ export default function Log({ pin, onAuthError }) {
             {perks.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         </label>
-        <input className="search small" type="search" placeholder="Mug or name" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button onClick={load} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
-        <button onClick={exportCsv} disabled={!shown.length}>Export CSV</button>
+        <label>Search
+          <input type="search" placeholder="Mug or name" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <button className="secondary" onClick={() => load(true)} disabled={loading}>{loading ? <>Loading…<span className="spinner" /></> : 'Refresh'}</button>
       </div>
 
       {error && <p className="error">{error}</p>}
-
-      {!rows && !error && <LogRowsSkeleton />}
+      {!rows && !error && <p className="muted">Loading…<span className="spinner" /></p>}
 
       {rows && (
-        <div className="summary">
-          {Object.entries(summary.redeemed).map(([p, n]) => (
-            <div key={p} className="stat"><b>{n}</b><span>{p}</span></div>
-          ))}
-          <div className="stat"><b>{summary.voids}</b><span>Voided</span></div>
-          <div className={summary.alerts ? 'stat alert' : 'stat'}><b>{summary.alerts}</b><span>Alerts</span></div>
-        </div>
+        <>
+          <div className="summary">
+            <div className="mini"><strong>{Object.values(summary.redeemed).reduce((a, b) => a + b, 0)}</strong><span className="label">Perks used</span></div>
+            <div className="mini"><strong>{summary.voids}</strong><span className="label">Voided</span></div>
+            <div className={summary.alerts ? 'mini alert' : 'mini'}><strong>{summary.alerts}</strong><span className="label">Alerts</span></div>
+          </div>
+          {Object.keys(summary.redeemed).length > 0 && (
+            <div className="chips">
+              <span className="label">By perk</span>
+              {Object.entries(summary.redeemed).map(([p, n]) => <span key={p} className="chip"><b>{n}</b> {p}</span>)}
+            </div>
+          )}
+        </>
       )}
 
-      {rows && shown.length === 0 && <div className="empty">Nothing logged for these filters.</div>}
+      {rows && shown.length === 0 && <p className="muted">Nothing logged for these filters.</p>}
 
       {shown.length > 0 && (
-        <div className="table-wrap">
-          <table>
+        <div className="table-scroll">
+          <table className="log-table">
             <thead>
-              <tr><th>Time</th><th>Mug</th><th>Member</th><th>Perk</th><th>Event</th><th>Check</th><th>Detail</th></tr>
+              <tr><th>Member / perk</th><th>Recorded</th><th>Check</th><th>Status</th><th>Detail</th></tr>
             </thead>
             <tbody>
               {shown.map((r, i) => {
                 const ev = eventInfo(r.event);
                 return (
                   <tr key={`${r.orderId}-${r.loggedAt}-${i}`}>
-                    <td className="nowrap">{dateTime(r.loggedAt)}</td>
-                    <td>{r.mug ? `#${r.mug}` : '–'}</td>
                     <td>
-                      {r.mug ? (
-                        <button className="link" onClick={() => setSelected({ mug: r.mug, name: r.member })}>
-                          {r.member || `Mug #${r.mug}`}
-                        </button>
-                      ) : (r.member || '–')}
+                      {r.mug
+                        ? <button className="link" onClick={() => onOpenMember(r.mug)}>{r.member || `Mug #${r.mug}`}</button>
+                        : (r.member || '–')}
+                      {r.mug && <span className="label"> #{r.mug}</span>}
+                      <br />
+                      <span className="label">{r.perk}</span>
                     </td>
-                    <td>{r.perk}</td>
-                    <td><span className={`badge ${ev.tone}`}>{ev.label}</span></td>
+                    <td className="nowrap">{dateTime(r.loggedAt)}</td>
                     <td>{r.checkNumber ? `#${r.checkNumber}` : ''}</td>
-                    <td className="detail" title={r.detail}>{r.detail}</td>
+                    <td><span className={`badge ${ev.tone}`}>{ev.label}</span></td>
+                    <td className="detail" title={r.detail}>{isAlert(r.event) ? r.detail : ''}</td>
                   </tr>
                 );
               })}
@@ -148,8 +153,6 @@ export default function Log({ pin, onAuthError }) {
           </table>
         </div>
       )}
-
-      {selected && <MemberLog pin={pin} member={selected} onClose={closeLog} onAuthError={onAuthError} />}
     </section>
   );
 }

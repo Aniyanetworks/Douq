@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getLog, MUG_STATUSES, mugStatusLabel, canSetMugStatus, AuthError, readCache, cacheKey } from './api.js';
+import { withRetry, getLog, MUG_STATUSES, mugStatusLabel, canSetMugStatus, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
@@ -22,7 +22,7 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
     try {
       await onMugStatus(member, status);
     } catch (err) {
-      setStatusError(`Couldn't save the mug status (${err.message}).`);
+      setStatusError("Couldn't save the mug status. Please try again.");
     } finally {
       setSaving('');
     }
@@ -36,12 +36,12 @@ export default function MemberLog({ pin, member, onClose, onAuthError, onMugStat
     const cached = readCache(cacheKey.log(rangeFrom(range), todayYmd()));
     setRows(cached ? (cached.data.log || []).filter((r) => sameMug(r.mug, member.mug)) : null);
     setError('');
-    getLog(pin, rangeFrom(range), todayYmd())
+    withRetry(() => getLog(pin, rangeFrom(range), todayYmd(), { maxAge: 60_000 }), { cancelled: () => !live })
       .then((res) => live && setRows((res.log || []).filter((r) => sameMug(r.mug, member.mug))))
       .catch((err) => {
         if (!live) return;
         if (err instanceof AuthError) onAuthError();
-        else setError(`Couldn't load the history (${err.message}).`);
+        else setError("Couldn't reach the server right now. Close this and open it again in a moment.");
       });
     return () => { live = false; };
   }, [pin, member.mug, range, onAuthError]);

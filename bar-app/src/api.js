@@ -4,6 +4,26 @@ export const DEMO = !API_URL;
 
 export class AuthError extends Error {}
 
+// Runs fn and, when the server hiccups (an empty or failed answer), waits 60 seconds and tries again, up to `tries` times,
+// so a short blip never reaches the screen. A wrong PIN is not retried. Use it for reads only.
+export async function withRetry(fn, { tries = 3, wait = 60_000, cancelled = () => false } = {}) {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof AuthError || i >= tries || cancelled()) throw err;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+      if (cancelled()) throw err;
+    }
+  }
+}
+
+// A list answer must hold the list it was asked for; anything else is treated as a failed request and retried.
+const need = (data, field) => {
+  if (!data || !Array.isArray(data[field])) throw new Error('Unexpected answer from the server');
+  return data;
+};
+
 async function call(action, pin, extra = {}) {
   if (DEMO) return demo(action, pin, extra);
   const res = await fetch(API_URL, {
@@ -13,7 +33,9 @@ async function call(action, pin, extra = {}) {
   });
   if (res.status === 401) throw new AuthError('Wrong PIN');
   if (!res.ok) throw new Error(`Server error ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  if (data && data.error) throw new Error(String(data.error)); // an error written into the answer counts as a failure too
+  return data;
 }
 
 // ---------- browser cache ----------
@@ -59,8 +81,23 @@ export function clearCache() {
   }
 }
 
-export const getMembers = async (pin) => writeCache(cacheKey.members(), await call('members', pin));
-export const getLog = async (pin, from, to) => writeCache(cacheKey.log(from, to), await call('log', pin, { from, to }));
+// The same request that is already on its way shares one answer, so a re-render, a double mount or two screens never fire it twice.
+const inflight = new Map();
+const shared = (key, fn) => {
+  if (!inflight.has(key)) inflight.set(key, fn().finally(() => inflight.delete(key)));
+  return inflight.get(key);
+};
+// maxAge: reuse an answer fetched less than this many milliseconds ago (for slow-changing lists such as one member's history)
+const recent = (key, maxAge) => {
+  const entry = maxAge ? readCache(key) : null;
+  return entry && Date.now() - entry.at < maxAge ? entry.data : null;
+};
+
+export const getMembers = (pin) => shared('members', async () => writeCache(cacheKey.members(), need(await call('members', pin), 'members')));
+export const getLog = async (pin, from, to, { maxAge = 0 } = {}) => {
+  const key = cacheKey.log(from, to);
+  return recent(key, maxAge) || shared(key, async () => writeCache(key, need(await call('log', pin, { from, to }), 'log')));
+};
 export const MUG_STATUSES = ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'];
 
 // What staff see. The saved GHL values stay Requested / Ordered / Received / Delivered / Cancelled.
@@ -93,7 +130,10 @@ export async function setMugStatus(pin, member, status) {
   }
 }
 
-export const getReminders = async (pin, from, to) => writeCache(cacheKey.reminders(from, to), await call('reminders', pin, { from, to }));
+export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
+  const key = cacheKey.reminders(from, to);
+  return recent(key, maxAge) || shared(key, async () => writeCache(key, need(await call('reminders', pin, { from, to }), 'reminders')));
+};
 
 // ---------- demo data ----------
 const DEMO_PIN = '1234';

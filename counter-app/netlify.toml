@@ -1,0 +1,4 @@
+# Netlify builds the counter site from the counter-app folder (set it as the Base directory of a second Netlify site).
+[build]
+  command = "npm run build"
+  publish = "dist"

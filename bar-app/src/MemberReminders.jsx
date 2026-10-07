@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getReminders, AuthError, readCache, cacheKey } from './api.js';
+import { withRetry, getReminders, AuthError, readCache, cacheKey } from './api.js';
 import { dateTime, todayYmd } from './format.js';
 import { LogRowsSkeleton } from './Skeleton.jsx';
 import MemberModal, { RangeTabs, rangeFrom, sameMug } from './MemberModal.jsx';
@@ -17,12 +17,12 @@ export default function MemberReminders({ pin, member, onClose, onAuthError }) {
     const cached = readCache(cacheKey.reminders(rangeFrom(range), todayYmd()));
     setRows(cached ? (cached.data.reminders || []).filter((r) => sameMug(r.mug, member.mug)) : null);
     setError('');
-    getReminders(pin, rangeFrom(range), todayYmd())
+    withRetry(() => getReminders(pin, rangeFrom(range), todayYmd(), { maxAge: 60_000 }), { cancelled: () => !live })
       .then((res) => live && setRows((res.reminders || []).filter((r) => sameMug(r.mug, member.mug))))
       .catch((err) => {
         if (!live) return;
         if (err instanceof AuthError) onAuthError();
-        else setError(`Couldn't load reminders (${err.message}).`);
+        else setError("Couldn't reach the server right now. Close this and open it again in a moment.");
       });
     return () => { live = false; };
   }, [pin, member.mug, range, onAuthError]);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getMembers, setMugStatus, AuthError, readCache, cacheKey } from './api.js';
+import { withRetry, getMembers, setMugStatus, AuthError, readCache, cacheKey } from './api.js';
 import { clock, monthName, shortDay } from './format.js';
 import { MemberCardsSkeleton } from './Skeleton.jsx';
 import MemberLog, { MugBadge } from './MemberLog.jsx';
@@ -72,22 +72,23 @@ export default function Members({ pin, onAuthError }) {
   const [remindersFor, setRemindersFor] = useState(null);
   const closeReminders = useCallback(() => setRemindersFor(null), []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // silent: the automatic refresh every minute changes the list without any loading indicator
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      setData(await getMembers(pin));
+      setData(await withRetry(() => getMembers(pin)));
       setError('');
     } catch (err) {
       if (err instanceof AuthError) return onAuthError();
-      setError(`Couldn't refresh (${err.message}). Showing the last list.`);
+      setError("Can't reach the server right now. Showing the last list.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [pin, onAuthError]);
 
   useEffect(() => {
-    load();
-    const t = setInterval(load, REFRESH_MS);
+    load(data !== null); // a list from this browser is already on screen: refresh it quietly
+    const t = setInterval(() => load(true), REFRESH_MS);
     return () => clearInterval(t);
   }, [load]);
 
@@ -154,7 +155,7 @@ export default function Members({ pin, onAuthError }) {
           <button type="button" className={view === 'grid' ? 'active' : ''} aria-pressed={view === 'grid'} title="Grid view" aria-label="Grid view" onClick={() => pickView('grid')}><GridIcon /></button>
           <button type="button" className={view === 'table' ? 'active' : ''} aria-pressed={view === 'table'} title="Table view" aria-label="Table view" onClick={() => pickView('table')}><TableIcon /></button>
         </div>
-        <button onClick={load} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
+        <button onClick={() => load()} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
       </div>
 
       <p className="meta">

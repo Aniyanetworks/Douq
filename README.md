@@ -7,6 +7,7 @@
 | `2-monthly-perk-reset.json` | Runs 00:05 on the 1st (Denver time): sets every "Redeemed" status back to "Available" |
 | `3-helper-list-ghl-field-ids.json` | Run once to get the GHL custom field IDs for the Config node |
 | `test-payload-free-pour.json` | Fake Toast order (mug 037 + Free Monthly Pour) for testing |
+| `counter-app/` | A second staff site (green "Member Counter" design) with the same features as `bar-app`; see its README |
 
 ## How it works
 Bartender rings up a benefit item and types the mug number (e.g. `037`) as the tab name → Toast sends `order_updated` → n8n:
