@@ -18,7 +18,7 @@ Without `VITE_API_URL` the site runs on demo data (PIN `1234`). To use real data
 
 ## Deploy on Netlify
 
-1. Netlify → **Add new site → Import an existing project** → pick the GitHub repo. `netlify.toml` in the repo root already sets the base folder, build command and publish folder.
+1. Netlify → **Add new site → Import an existing project** → pick the GitHub repo. Set the site's **Base directory** to `bar-app` (Site settings → Build & deploy). The `netlify.toml` in the repo root supplies the build command and publish folder.
 2. **Site settings → Environment variables** → add `VITE_API_URL` = the Production URL of the **Bar API Webhook** node (ends in `/webhook/bar-api`).
 3. Deploy. Every push to `main` redeploys.
 

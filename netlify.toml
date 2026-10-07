@@ -1,5 +1,6 @@
-# Netlify builds the bartender site from the bar-app folder.
+# Shared by both Netlify sites. Each site sets its own Base directory in Site settings > Build & deploy:
+#   bartender site -> bar-app        member counter site -> counter-app
+# (A "base" line in this file would override that setting for every site, so there is none.)
 [build]
-  base = "bar-app"
   command = "npm run build"
   publish = "dist"

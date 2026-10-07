@@ -20,7 +20,7 @@ Without `VITE_API_URL` the site runs on demo data (PIN `1234`). To use real data
 ## Deploy on Netlify (a second site)
 
 1. Netlify → **Add new site → Import an existing project** → the same GitHub repo.
-2. Set **Base directory** to `counter-app` (the root `netlify.toml` belongs to `bar-app`; this folder has its own).
+2. Set **Base directory** to `counter-app`. The `netlify.toml` in the repo root supplies the build command and publish folder; it has no `base` line, so each site keeps its own Base directory.
 3. Add the environment variable `VITE_API_URL` = the Production URL of the **Bar API Webhook** node (ends in `/webhook/bar-api`).
 4. Deploy.
 
