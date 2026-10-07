@@ -1,19 +1,7 @@
 import { useEffect } from 'react';
-import { todayYmd } from './format.js';
+import { sameMug, RANGES, rangeFrom } from './format.js';
 
-export const sameMug = (a, b) => String(a).replace(/^0+/, '') === String(b).replace(/^0+/, '');
-
-// First day of the month `back` months ago, as YYYY-MM-DD
-const monthStart = (back) => {
-  const [y, m] = todayYmd().split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1 - back, 1)).toISOString().slice(0, 10);
-};
-export const RANGES = [
-  { key: 'month', label: 'This month', from: () => monthStart(0) },
-  { key: '3m', label: '3 months', from: () => monthStart(2) },
-  { key: 'all', label: 'All', from: () => '' },
-];
-export const rangeFrom = (key) => RANGES.find((r) => r.key === key).from();
+export { sameMug, RANGES, rangeFrom };
 
 export function RangeTabs({ value, onChange }) {
   return (

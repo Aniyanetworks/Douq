@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { withRetry, getLog, getReminders, AuthError, readCache, cacheKey } from '../../bar-app/src/api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from '../../bar-app/src/format.js';
-import { RANGES, rangeFrom, sameMug } from '../../bar-app/src/MemberModal.jsx';
+import { RANGES, rangeFrom, sameMug } from '../../bar-app/src/format.js';
 import MugPipeline, { MugPill } from './MugPipeline.jsx';
 
 const PERK_TEXT = {

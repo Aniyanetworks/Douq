@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { setMugStatus, AuthError } from '../../bar-app/src/api.js';
-import { sameMug } from '../../bar-app/src/MemberModal.jsx';
+import { sameMug } from '../../bar-app/src/format.js';
 import { MugPill } from './MugPipeline.jsx';
 import MemberDetail from './MemberDetail.jsx';
 
