@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { withRetry, getLog, getReminders, AuthError, readCache, cacheKey } from '../../bar-app/src/api.js';
+import { withRetry, getLog, getReminders, AuthError, readCache, cacheKey, UNLIMITED_PERKS } from '../../bar-app/src/api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from '../../bar-app/src/format.js';
 import { RANGES, rangeFrom, sameMug } from '../../bar-app/src/format.js';
 import MugPipeline, { MugPill } from './MugPipeline.jsx';
@@ -7,8 +7,6 @@ import MugPipeline, { MugPill } from './MugPipeline.jsx';
 const PERK_TEXT = {
   free_pour: 'One complimentary pour each month',
   four_pack: 'One 4-pack at 50% off each month',
-  merch: '10% off merchandise each month',
-  mug: '24oz beer at the 16oz price each month',
 };
 
 // The right-hand panel: perks this month, the mug order pipeline and this member's history.
@@ -48,6 +46,12 @@ export default function MemberDetail({ pin, member, onAuthError, onMugStatus }) 
     return c;
   }, [log]);
 
+  // Unlimited benefits are counted from the log (a voided item is not a use); they never gray out
+  const unlimited = useMemo(() => UNLIMITED_PERKS.map((u) => {
+    const uses = (log || []).filter((r) => r.perk === u.label && (r.event === 'used' || r.event === 'redeem'));
+    return { ...u, count: log ? uses.length : null, last: uses[0] ? shortDay(uses[0].businessDay) : '' }; // the log is newest first
+  }), [log]);
+
   return (
     <>
       <div className="row">
@@ -77,6 +81,16 @@ export default function MemberDetail({ pin, member, onAuthError, onMugStatus }) 
             </div>
           );
         })}
+        {unlimited.map((u) => (
+          <div className="benefit" key={u.key}>
+            <span className="available">● Unlimited</span>
+            <h3>{u.label}</h3>
+            <p>
+              {u.count === null ? 'Counting…' : u.count === 0 ? u.text : `Used ${u.count} ${u.count === 1 ? 'time' : 'times'}${u.last ? ` · last ${u.last}` : ''}`}
+            </p>
+            <div className="benefit-btn open" aria-disabled="true">Available on every visit</div>
+          </div>
+        ))}
       </div>
 
       <div className="row">

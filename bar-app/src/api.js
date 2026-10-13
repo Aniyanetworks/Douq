@@ -141,8 +141,12 @@ const demoStatus = { d001: 'Delivered', d002: 'Received', d014: 'Ordered' };
 const perks = (used) => [
   { key: 'free_pour', label: 'Free Monthly Pour', used: used.includes('free_pour'), date: used.includes('free_pour') ? '2026-09-12' : '' },
   { key: 'four_pack', label: '50% off 4-Pack', used: used.includes('four_pack'), date: used.includes('four_pack') ? '2026-09-20' : '' },
-  { key: 'merch', label: 'Merchandise 10%', used: used.includes('merch'), date: used.includes('merch') ? '2026-09-05' : '' },
-  { key: 'mug', label: 'Special Mug Pricing (24oz beer at the 16oz price)', used: used.includes('mug'), date: used.includes('mug') ? '2026-09-27' : '' },
+];
+
+// Unlimited benefits: any visit, never used up. The server only logs them (event "used"), so the sites count them from the perk log.
+export const UNLIMITED_PERKS = [
+  { key: 'mug', label: 'Special Mug Pricing (24oz beer at the 16oz price)', text: '24oz beer at the 16oz price, on any visit' },
+  { key: 'merch', label: 'Merchandise 10%', text: '10% off merchandise, on any visit' },
 ];
 
 async function demo(action, pin, { from, to, contactId, status }) {
@@ -157,28 +161,29 @@ async function demo(action, pin, { from, to, contactId, status }) {
       period: '2026-09',
       updatedAt: new Date().toISOString(),
       members: [
-        { id: 'd001', mug: '001', name: 'Test User', phone: '+14375293053', email: 'test.user01@mail.com', perks: perks(['free_pour', 'four_pack', 'merch', 'mug']), initialPour: '2026-09-28' },
+        { id: 'd001', mug: '001', name: 'Test User', phone: '+14375293053', email: 'test.user01@mail.com', perks: perks(['free_pour', 'four_pack']), initialPour: '2026-09-28' },
         { id: 'd002', mug: '002', name: 'Jane Smith', phone: '+13035550102', email: 'jane@example.com', perks: perks(['free_pour']), initialPour: '2026-09-02' },
         { id: 'd014', mug: '014', name: 'Carlos Rivera', phone: '+13035550114', email: 'carlos@example.com', perks: perks([]), initialPour: '' },
-        { id: 'd037', mug: '037', name: 'Doug Reed', phone: '+13035550137', email: 'doug@example.com', perks: perks(['four_pack', 'mug']), initialPour: '2026-08-15' },
+        { id: 'd037', mug: '037', name: 'Doug Reed', phone: '+13035550137', email: 'doug@example.com', perks: perks(['four_pack']), initialPour: '2026-08-15' },
       ].map((m) => ({ ...m, mugStatus: demoStatus[m.id] || '' })),
     };
   }
   if (action === 'reminders') {
     const reminders = [
-      { sentAt: '2026-09-27T16:00:00Z', day: '2026-09-27', mug: '014', member: 'Carlos Rivera', kind: 'Last-chance reminder', unusedPerks: 'Free Monthly Pour, 50% off a 4-Pack, 10% off merchandise and 24oz beer at the 16oz price', expiresOn: 'Sep 30' },
-      { sentAt: '2026-09-27T16:00:00Z', day: '2026-09-27', mug: '002', member: 'Jane Smith', kind: 'Last-chance reminder', unusedPerks: '50% off a 4-Pack, 10% off merchandise and 24oz beer at the 16oz price', expiresOn: 'Sep 30' },
-      { sentAt: '2026-09-20T16:00:00Z', day: '2026-09-20', mug: '014', member: 'Carlos Rivera', kind: 'Reminder', unusedPerks: 'Free Monthly Pour, 50% off a 4-Pack, 10% off merchandise and 24oz beer at the 16oz price', expiresOn: 'Sep 30' },
-      { sentAt: '2026-09-20T16:00:00Z', day: '2026-09-20', mug: '037', member: 'Doug Reed', kind: 'Reminder', unusedPerks: 'Free Monthly Pour and 10% off merchandise', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-27T16:00:00Z', day: '2026-09-27', mug: '014', member: 'Carlos Rivera', kind: 'Last-chance reminder', unusedPerks: 'Free Monthly Pour and 50% off a 4-Pack', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-27T16:00:00Z', day: '2026-09-27', mug: '002', member: 'Jane Smith', kind: 'Last-chance reminder', unusedPerks: '50% off a 4-Pack', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-20T16:00:00Z', day: '2026-09-20', mug: '014', member: 'Carlos Rivera', kind: 'Reminder', unusedPerks: 'Free Monthly Pour and 50% off a 4-Pack', expiresOn: 'Sep 30' },
+      { sentAt: '2026-09-20T16:00:00Z', day: '2026-09-20', mug: '037', member: 'Doug Reed', kind: 'Reminder', unusedPerks: 'Free Monthly Pour', expiresOn: 'Sep 30' },
     ].filter((r) => (!from || r.day >= from) && (!to || r.day <= to));
     return { from, to, reminders };
   }
   const log = [
     { loggedAt: '2026-09-29T17:25:00Z', businessDay: '2026-09-29', mug: '001', member: 'Test User', perk: 'Initial Member Pour', event: 'redeem', orderId: 'test-order-0010', checkNumber: '99', detail: 'Initial Member Pour redeemed – check #99' },
-    { loggedAt: '2026-09-29T17:18:00Z', businessDay: '2026-09-29', mug: '001', member: 'Test User', perk: 'Merchandise 10%', event: 'double', orderId: 'test-order-0007', checkNumber: '99', detail: 'Test User (mug 001) already used Merch 10% for 2026-09' },
+    { loggedAt: '2026-09-29T17:18:00Z', businessDay: '2026-09-29', mug: '001', member: 'Test User', perk: 'Merchandise 10%', event: 'used', orderId: 'test-order-0007', checkNumber: '99', detail: 'Merchandise 10% used (unlimited) – check #99' },
+    { loggedAt: '2026-09-15T18:40:00Z', businessDay: '2026-09-15', mug: '001', member: 'Test User', perk: 'Special Mug Pricing (24oz beer at the 16oz price)', event: 'used', orderId: 'test-order-0005', checkNumber: '71', detail: 'Special Mug Pricing used (unlimited) – check #71' },
     { loggedAt: '2026-09-28T22:10:00Z', businessDay: '2026-09-28', mug: '999', member: '', perk: 'Free Monthly Pour', event: 'no_member', orderId: 'test-order-0011', checkNumber: '104', detail: 'No member found with mug number 999' },
     { loggedAt: '2026-09-28T21:02:00Z', businessDay: '2026-09-28', mug: '002', member: 'Jane Smith', perk: 'Free Monthly Pour', event: 'redeem', orderId: 'ord-1', checkNumber: '88', detail: 'Free Monthly Pour redeemed – period 2026-09' },
-    { loggedAt: '2026-09-27T19:40:00Z', businessDay: '2026-09-27', mug: '037', member: 'Doug Reed', perk: 'Special Mug Pricing (24oz beer at the 16oz price)', event: 'redeem', orderId: 'ord-2', checkNumber: '61', detail: 'Mug pricing redeemed – period 2026-09' },
+    { loggedAt: '2026-09-27T19:40:00Z', businessDay: '2026-09-27', mug: '037', member: 'Doug Reed', perk: 'Special Mug Pricing (24oz beer at the 16oz price)', event: 'used', orderId: 'ord-2', checkNumber: '61', detail: 'Special Mug Pricing used (unlimited) – check #61' },
     { loggedAt: '2026-09-20T18:12:00Z', businessDay: '2026-09-20', mug: '037', member: 'Doug Reed', perk: '50% off 4-Pack', event: 'redeem', orderId: 'ord-3', checkNumber: '40', detail: '50% off 4-Pack redeemed – period 2026-09' },
     { loggedAt: '2026-09-19T23:30:00Z', businessDay: '2026-09-19', mug: '', member: '', perk: 'Free Monthly Pour', event: 'no_mug', orderId: 'ord-4', checkNumber: '33', detail: 'Benefit rung up WITHOUT a mug number in the tab name' },
     { loggedAt: '2026-09-12T20:05:00Z', businessDay: '2026-09-12', mug: '002', member: 'Jane Smith', perk: 'Free Monthly Pour', event: 'void', orderId: 'ord-0', checkNumber: '21', detail: 'Free Monthly Pour REVERTED (voided in Toast)' },

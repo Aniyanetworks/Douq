@@ -4,7 +4,7 @@
 | File | Purpose |
 |---|---|
 | `1-toast-ghl-member-benefits.json` | Main workflow: Toast webhook → detect perk → find member by mug # → update GHL / alert |
-| `2-monthly-perk-reset.json` | Runs 00:05 on the 1st (Denver time): sets every "Redeemed" status back to "Available" |
+| `2-monthly-perk-reset.json` | Runs 00:05 on the 1st (Denver time): sets every "Redeemed" status (free pour, 4-pack) back to "Available" |
 | `3-helper-list-ghl-field-ids.json` | Run once to get the GHL custom field IDs for the Config node |
 | `test-payload-free-pour.json` | Fake Toast order (mug 037 + Free Monthly Pour) for testing |
 | `counter-app/` | A second staff site (green "Member Counter" design) with the same features as `bar-app`; see its README |
@@ -84,7 +84,7 @@ Copy the subscription **Secret** from Toast into `TOAST_WEBHOOK_SECRET` and set 
 ## Notes
 - Every Toast order reaches n8n, but only benefit orders call GHL, so GHL usage stays low.
 - Double redemptions are **flagged after the fact**; Toast can't block them at the register.
-- Unlimited perks (mug pricing, merch) only get a note, once per item.
+- Mug pricing (24oz beer at the 16oz price) and merchandise 10% are **unlimited, any visit**: they are never blocked or reset. Each item sold gets a member note and a Perk Log row (event *Used*), and the counter site shows how many times they were used. Only the Free Monthly Pour and 50% off 4-Pack are once per month (reset on the 1st, no rollover).
 - Insider / VIP tiers: add their items to `BENEFITS`, `BENEFIT_KINDS` and `BENEFIT_FIELDS` when they launch.
 
 ## Mug orders (workflow 4 + bar site)
