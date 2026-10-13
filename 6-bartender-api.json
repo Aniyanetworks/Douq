@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nreturn [{ json: {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH', // GHL dropdown: Requested / Ordered / Received / Delivered / Cancelled\n  MUG_STATUSES: ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'],\n  MUG_STATUS_TAGS: { Requested: 'ordered by member', Ordered: 'order processing by vendor', Received: 'received by bartender', Delivered: 'delivered to member', Cancelled: 'mug order cancelled' }, // a GHL workflow on each tag texts the member\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  MEMBER_TAG: 'mug-club-member',     // only Mug Club members are listed\n  MEMBER_CACHE_SECONDS: 60, // all tablets share one GHL read per minute\n  // Monthly perks shown on each member card (mug pricing and merch are unlimited: the sites count them from the Perk Log)\n  PERKS: [\n    { key: 'free_pour', label: 'Free Monthly Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '50% off 4-Pack',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n  ],\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG – bartender site API (see bar-app/README.md)\n// ============================================================\nconst base = {\n  STAFF_PIN: 'CHANGE-ME',   // shared PIN bartenders type on the site – change it when staff leave\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb',\n  MUG_STATUS_FIELD: 'citZ7RA1sh8YIjMkfmhH', // GHL dropdown: Requested / Ordered / Received / Delivered / Cancelled\n  MUG_STATUSES: ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'],\n  MUG_STATUS_TAGS: { Requested: 'ordered by member', Ordered: 'order processing by vendor', Received: 'received by bartender', Delivered: 'delivered to member', Cancelled: 'mug order cancelled' }, // a GHL workflow on each tag texts the member\n  INITIAL_POUR_DATE: 'i9s94p3uVbJ8Gs5IrWHU',\n  REMINDER_LOG_OBJECT: 'custom_objects.reminder_logs',\n  MEMBER_TAG: 'mug-club-member',     // only Mug Club members are listed\n  MEMBER_CACHE_SECONDS: 60, // all tablets share one GHL read per minute\n  // Monthly perks shown on each member card (mug pricing and merch are unlimited: the sites count them from the Perk Log)\n  PERKS: [\n    { key: 'free_pour', label: 'Free Monthly Pour',   status: 'nQ1XQVxK7dt5x2jkmzQK', period: 'sfwSQ746eytoaIErT1xL', date: 'Kzbwb0nNxFhlcNZoMrvP' },\n    { key: 'four_pack', label: '50% off 4-Pack',  status: 'CPdRbUyVL44UpTcIOHzc', period: 'BpyqJNV3NHbz4mdskVzq', date: 'HmCaCCkzQGO0AE69ca22' },\n  ],\n};\nbase.SERVICE_KEY = 'CHANGE-ME-SERVICE-KEY'; // lets workflow 1 read the saved settings (must match its Config)\nbase.DEFAULTS = { locationId: base.LOCATION_ID, memberTag: base.MEMBER_TAG, mugNumberFieldId: base.MUG_FIELD, mugStatusFieldId: base.MUG_STATUS_FIELD };\n// Settings saved on the member counter's Settings page override the values above\nconst saved = $getWorkflowStaticData('global').settings || {};\nconst g = saved.ghl || {};\nif (saved.pin) base.STAFF_PIN = saved.pin;\nif (g.locationId) base.LOCATION_ID = g.locationId;\nif (g.memberTag) base.MEMBER_TAG = g.memberTag;\nif (g.mugNumberFieldId) base.MUG_FIELD = g.mugNumberFieldId;\nif (g.mugStatusFieldId) base.MUG_STATUS_FIELD = g.mugStatusFieldId;\nreturn [{ json: base }];"
       },
       "id": "6505dbac-7c6f-4631-be57-f33cd76be673",
       "name": "Config",
@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nconst route = ['log', 'reminders', 'mug-status'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '' } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | settings.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\nconst route = ['log', 'reminders', 'mug-status'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '' } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -169,6 +169,30 @@
               },
               "renameOutput": true,
               "outputKey": "mug-status"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d13da2a4-469c-4abd-ac7e-c554e4cc3f33",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "settings",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "settings"
             }
           ]
         },
@@ -681,6 +705,33 @@
       "retryOnFail": true,
       "maxTries": 4,
       "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Settings page of the member counter: reads or saves the staff PIN and the connection settings (kept in n8n).\n// \"settings-get\" and \"settings-save\" need the staff PIN; \"settings-service\" (used by workflow 1) needs the service key.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\nconst st = $getWorkflowStaticData('global');\nconst view = () => {\n  const s = st.settings || {};\n  return { ok: true, settings: { ghl: s.ghl || {}, urls: s.urls || {}, toast: s.toast || {} }, defaults: cfg.DEFAULTS, pinChanged: !!s.pin, updatedAt: s.updatedAt || '' };\n};\nif (body.action !== 'settings-save') return [{ json: view() }];\n\nconst inc = body.settings || {};\nconst errors = [];\nconst cur = st.settings || {};\nconst next = { ghl: { ...(cur.ghl || {}) }, urls: { ...(cur.urls || {}) }, toast: { ...(cur.toast || {}) } };\nconst TEXT = {\n  ghl: { locationId: /^[\\w.:-]{6,60}$/, memberTag: /^[\\w .:-]{1,60}$/, mugNumberFieldId: /^[\\w.:-]{6,60}$/, mugStatusFieldId: /^[\\w.:-]{6,60}$/ },\n  urls: { alertWebhookUrl: /^https:\\/\\/\\S+$/, newMemberWebhookUrl: /^https:\\/\\/\\S+$/, signupFormUrl: /^https:\\/\\/\\S+$/ },\n  toast: { restaurantGuid: /^[\\w-]{8,64}$/ },\n};\nfor (const [sec, fields] of Object.entries(TEXT)) {\n  for (const [key, re] of Object.entries(fields)) {\n    const v = inc[sec] && inc[sec][key];\n    if (typeof v !== 'string') continue;\n    const t = v.trim();\n    if (!t) delete next[sec][key];\n    else if (!re.test(t)) errors.push(`${sec}.${key} is not valid`);\n    else next[sec][key] = t;\n  }\n}\nconst KINDS = ['monthly', 'once', 'log'];\nconst MAPS = { benefits: (v) => typeof v === 'string' && /^\\w+$/.test(v), benefitKinds: (v) => KINDS.includes(v), benefitLabels: (v) => typeof v === 'string' && v.length > 0 && v.length < 120 };\nfor (const [key, ok] of Object.entries(MAPS)) {\n  const v = inc.toast && inc.toast[key];\n  if (v === undefined) continue;\n  if (v === null || v === '') { delete next.toast[key]; continue; }\n  if (typeof v !== 'object' || Array.isArray(v) || !Object.keys(v).length || !Object.values(v).every(ok)) errors.push(`toast.${key} must be a JSON object with valid values`);\n  else next.toast[key] = v;\n}\nlet pin = cur.pin;\nif (typeof body.newPin === 'string' && body.newPin) {\n  if (!/^[\\x21-\\x7e]{4,32}$/.test(body.newPin)) errors.push('The new PIN must be 4 to 32 characters (letters, numbers, symbols, no spaces)');\n  else pin = body.newPin;\n}\nif (errors.length) return [{ json: { ok: false, errors } }];\nst.settings = { ...next, ...(pin ? { pin } : {}), updatedAt: new Date().toISOString() };\nreturn [{ json: view() }];"
+      },
+      "id": "45e45c0e-48b4-484e-ab29-dee9e1d22407",
+      "name": "Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        972,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "98286b7e-4ae6-45e6-9d9f-2967e4d97fdb",
+      "name": "Send Settings",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        820
+      ]
     }
   ],
   "connections": {
@@ -750,6 +801,13 @@
         [
           {
             "node": "Validate Mug Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Settings",
             "type": "main",
             "index": 0
           }
@@ -922,6 +980,17 @@
         [
           {
             "node": "Mug Status Saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Send Settings",
             "type": "main",
             "index": 0
           }

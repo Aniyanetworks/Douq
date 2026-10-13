@@ -98,6 +98,10 @@ export const getLog = async (pin, from, to, { maxAge = 0 } = {}) => {
   const key = cacheKey.log(from, to);
   return recent(key, maxAge) || shared(key, async () => writeCache(key, need(await call('log', pin, { from, to }), 'log')));
 };
+// Settings page (kept in n8n): the staff PIN and the GHL / webhook / Toast values. Needs the current PIN.
+export const getSettings = (pin) => call('settings-get', pin);
+export const saveSettings = (pin, settings, newPin) => call('settings-save', pin, { settings, newPin: newPin || '' });
+
 export const MUG_STATUSES = ['Requested', 'Ordered', 'Received', 'Delivered', 'Cancelled'];
 
 // What staff see. The saved GHL values stay Requested / Ordered / Received / Delivered / Cancelled.
@@ -136,7 +140,8 @@ export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
 };
 
 // ---------- demo data ----------
-const DEMO_PIN = '1234';
+let demoPin = '1234'; // the Settings page can change it while the demo runs
+const demoSettings = { ghl: {}, urls: { signupFormUrl: 'https://example.com/join-the-mug-club' }, toast: {} };
 const demoStatus = { d001: 'Delivered', d002: 'Received', d014: 'Ordered' };
 const perks = (used) => [
   { key: 'free_pour', label: 'Free Monthly Pour', used: used.includes('free_pour'), date: used.includes('free_pour') ? '2026-09-12' : '' },
@@ -149,9 +154,22 @@ export const UNLIMITED_PERKS = [
   { key: 'merch', label: 'Merchandise 10%', text: '10% off merchandise, on any visit' },
 ];
 
-async function demo(action, pin, { from, to, contactId, status }) {
+async function demo(action, pin, extra) {
+  const { from, to, contactId, status } = extra;
   await new Promise((r) => setTimeout(r, 300));
-  if (pin !== DEMO_PIN) throw new AuthError('Wrong PIN');
+  if (pin !== demoPin) throw new AuthError('Wrong PIN');
+  if (action === 'settings-get' || action === 'settings-save') {
+    if (action === 'settings-save') {
+      const inc = extra.settings || {};
+      for (const sec of Object.keys(demoSettings)) {
+        for (const [k, v] of Object.entries(inc[sec] || {})) {
+          if (v === '' || v === null) delete demoSettings[sec][k]; else demoSettings[sec][k] = v;
+        }
+      }
+      if (extra.newPin) demoPin = extra.newPin;
+    }
+    return { ok: true, settings: JSON.parse(JSON.stringify(demoSettings)), defaults: { locationId: 'XTpY4DQ6CrYVvesFdX3K', memberTag: 'mug-club-member', mugNumberFieldId: 'vWklTcHjmQV1tW52XIAb', mugStatusFieldId: 'citZ7RA1sh8YIjMkfmhH' }, pinChanged: demoPin !== '1234', updatedAt: '' };
+  }
   if (action === 'mug-status') {
     demoStatus[contactId] = status;
     return { ok: true, status };

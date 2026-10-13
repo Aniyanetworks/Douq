@@ -111,7 +111,7 @@ footer { font-size: 12px; color: #788274; margin: 25px 0; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
 .stat, .panel { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 23px; }
 .stat strong { display: block; font-size: 30px; margin-top: 6px; }
-.stat strong.period { font-size: 23px; line-height: 38px; }
+.stat strong.period { font-size: 23px; line-height: 38px; }.stat .sub { display: block; margin-top: 4px; font-size: 12px; color: var(--muted, #6b7a6f); }
 
 /* ---------- member counter ---------- */
 .layout { display: grid; grid-template-columns: 350px 1fr; gap: 22px; align-items: stretch; }
@@ -262,8 +262,51 @@ dialog .row { margin-top: 24px; }
   .benefits { grid-template-columns: 1fr; }
   header { padding: 20px; flex-wrap: wrap; }
   .brand { font-size: 22px; }
-  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .row { flex-wrap: wrap; }
   td { font-size: 12px; }
   h1 { font-size: 28px; }
 }
+
+/* Graphs tab (categorical palette validated for adjacent pairs: blue, orange, aqua, yellow) */
+.viz { --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; }
+.viz h3 { margin: 0; font-size: 18px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 12px 0 6px; padding: 0; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.legend i, .tip-row i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.chart-wrap { position: relative; }
+.chart-wrap svg { width: 100%; height: auto; display: block; }
+.chart-wrap .grid { stroke: var(--row-line); stroke-width: 1; }
+.chart-wrap .axis { stroke: var(--line); stroke-width: 1; }
+.chart-wrap .tick { font-size: 11px; fill: var(--muted); }
+.tooltip { position: absolute; top: 4px; transform: translateX(-50%); background: white; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 6px 18px rgba(25, 60, 49, .14); pointer-events: none; min-width: 150px; z-index: 2; }
+.tooltip b { display: block; margin-bottom: 5px; }
+.tip-row { display: flex; align-items: center; gap: 7px; padding: 1px 0; }
+.tip-row em { margin-left: auto; padding-left: 14px; font-style: normal; font-weight: 600; }
+.tip-row.total { border-top: 1px solid var(--row-line); margin-top: 4px; padding-top: 4px; }
+.hbars { display: grid; gap: 10px; margin: 12px 0 16px; }
+.hbar { display: grid; grid-template-columns: 170px 1fr 44px; align-items: center; gap: 12px; font-size: 14px; }
+.hbar-name small { display: block; color: var(--muted); font-size: 12px; }
+.hbar-track { height: 14px; background: var(--panel-soft); border-radius: 4px; overflow: hidden; }
+.hbar-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
+.hbar b { text-align: right; }
+@media (max-width: 600px) { .hbar { grid-template-columns: 110px 1fr 36px; gap: 8px; } }
+
+/* Settings tab and New member popup */
+.settings-form h3 { margin: 26px 0 12px; font-size: 18px; }
+.setting-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.setting { display: grid; gap: 6px; margin-bottom: 14px; font-size: 14px; }
+.setting > span { font-weight: 600; }
+.setting small { color: var(--muted); font-size: 12px; }
+.setting input, .setting textarea { width: 100%; font: inherit; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.setting textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.settings-errors { margin: 8px 0 14px; padding-left: 20px; }
+.saved { color: var(--ok); font-weight: 600; margin: 8px 0 14px; }
+dialog.intake { border: 0; border-radius: 16px; padding: 24px; width: min(560px, 94vw); box-shadow: 0 20px 60px rgba(25, 60, 49, .3); }
+dialog.intake::backdrop { background: rgba(25, 60, 49, .45); }
+.qr { width: min(300px, 70vw); margin: 14px auto; padding: 10px; background: white; border: 1px solid var(--line); border-radius: 12px; }
+.qr svg { display: block; width: 100%; height: auto; }
+.intake-url { word-break: break-all; font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 14px; }
+.intake-actions { justify-content: center; gap: 10px; flex-wrap: wrap; }
+.intake-actions .button { display: inline-block; padding: 12px 18px; border-radius: 9px; background: var(--green); color: white; text-decoration: none; }
+.intake-frame { width: 100%; height: 60vh; border: 1px solid var(--line); border-radius: 10px; margin-top: 16px; }
