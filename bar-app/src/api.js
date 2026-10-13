@@ -168,7 +168,7 @@ async function demo(action, pin, extra) {
       }
       if (extra.newPin) demoPin = extra.newPin;
     }
-    return { ok: true, settings: JSON.parse(JSON.stringify(demoSettings)), defaults: { locationId: 'XTpY4DQ6CrYVvesFdX3K', memberTag: 'mug-club-member', mugNumberFieldId: 'vWklTcHjmQV1tW52XIAb', mugStatusFieldId: 'citZ7RA1sh8YIjMkfmhH' }, pinChanged: demoPin !== '1234', updatedAt: '' };
+    return { ok: true, settings: JSON.parse(JSON.stringify(demoSettings)), defaults: { locationId: 'XTpY4DQ6CrYVvesFdX3K', memberTag: 'mug-club-member', mugNumberFieldId: 'vWklTcHjmQV1tW52XIAb', mugStatusFieldId: 'citZ7RA1sh8YIjMkfmhH', alertWebhookUrl: 'https://services.leadconnectorhq.com/hooks/example', newMemberWebhookUrl: 'https://n8n.example.com/webhook/new-member', restaurantGuid: 'ca749399-db34-462a-8792-f6de561b240f', benefits: { 'e9a3cfc6-example': 'free_pour' }, benefitKinds: { free_pour: 'monthly', four_pack: 'monthly', initial_pour: 'once', mug: 'log', merch: 'log', member_mug: 'log' }, benefitLabels: { free_pour: 'Free Monthly Pour', four_pack: '50% off 4-Pack' } }, pinChanged: demoPin !== '1234', updatedAt: '' };
   }
   if (action === 'mug-status') {
     demoStatus[contactId] = status;

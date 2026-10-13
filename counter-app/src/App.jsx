@@ -5,7 +5,7 @@ import useMembers from './useMembers.js';
 import Login from './Login.jsx';
 import Counter from './Counter.jsx';
 import Activity from './Activity.jsx';
-import Graphs from './Graphs.jsx';
+import Report from './Report.jsx';
 import Settings from './Settings.jsx';
 import Intake from './Intake.jsx';
 import Reminders from './Reminders.jsx';
@@ -13,7 +13,7 @@ import Reminders from './Reminders.jsx';
 const TABS = [
   { key: 'counter', label: 'Member counter' },
   { key: 'activity', label: 'Activity' },
-  { key: 'graphs', label: 'Graphs' },
+  { key: 'report', label: 'Report' },
   { key: 'reminders', label: 'Reminders' },
   { key: 'settings', label: 'Settings' },
 ];
@@ -171,7 +171,7 @@ function Dashboard({ pin, onLock, onPinChange }) {
 
         {tab === 'counter' && <Counter pin={pin} onAuthError={onLock} state={state} focus={focus} clearFocus={clearFocus} />}
         {tab === 'activity' && <Activity pin={pin} onAuthError={onLock} onOpenMember={openMember} />}
-        {tab === 'graphs' && <Graphs pin={pin} onAuthError={onLock} />}
+        {tab === 'report' && <Report pin={pin} onAuthError={onLock} />}
         {tab === 'settings' && <Settings pin={pin} onAuthError={onLock} onPinChanged={onPinChange} onSaved={(sv) => setSignupUrl((sv.urls && sv.urls.signupFormUrl) || '')} />}
         {tab === 'reminders' && <Reminders pin={pin} onAuthError={onLock} onOpenMember={openMember} />}
 

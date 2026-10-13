@@ -21,8 +21,8 @@ const span = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
 const monthLabel = (ym) => new Date(`${ym}-01T00:00:00Z`).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 
 // One bar per day, or per month when the range is longer than about two months
-function buildBuckets(from, to, rows) {
-  const monthly = span(from, to) > 62;
+function buildBuckets(from, to, rows, groupBy) {
+  const monthly = groupBy === 'month' || (groupBy === 'auto' && span(from, to) > 62);
   const keyOf = (ymd) => (monthly ? ymd.slice(0, 7) : ymd);
   const keys = [];
   if (monthly) {
@@ -48,9 +48,11 @@ function buildBuckets(from, to, rows) {
     else if (r.event === 'void') b.counts[s] -= 1; // a voided check takes its use back
   }
   for (const b of buckets) for (const s of SERIES) b.counts[s.key] = Math.max(0, b.counts[s.key]);
-  for (const b of buckets) b.total = SERIES.reduce((n, s) => n + b.counts[s.key], 0);
   return { buckets, monthly };
 }
+
+// Totals for the perks that are switched on
+const withTotals = (buckets, series) => buckets.map((b) => ({ ...b, total: series.reduce((n, s) => n + b.counts[s.key], 0) }));
 
 const niceTicks = (max) => {
   const raw = Math.max(max, 1) / 4;
@@ -68,7 +70,7 @@ const topRounded = (x, y, w, h, r) => {
 
 const W = 760, H = 270, M = { l: 38, r: 8, t: 10, b: 30 };
 
-function StackedBars({ buckets, monthly }) {
+function StackedBars({ buckets, monthly, series }) {
   const [hover, setHover] = useState(null);
   const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
   const { top, ticks } = useMemo(() => niceTicks(Math.max(...buckets.map((b) => b.total))), [buckets]);
@@ -90,11 +92,11 @@ function StackedBars({ buckets, monthly }) {
           const cx = M.l + slot * i + slot / 2;
           const x = cx - bw / 2;
           let cum = 0;
-          const present = SERIES.filter((s) => b.counts[s.key] > 0);
+          const present = series.filter((s) => b.counts[s.key] > 0);
           const topKey = present.length ? present[present.length - 1].key : null;
           return (
             <g key={b.key}>
-              {SERIES.map((s) => {
+              {series.map((s) => {
                 const v = b.counts[s.key];
                 if (!v) return null;
                 const y0 = y(cum), y1 = y(cum + v);
@@ -114,7 +116,7 @@ function StackedBars({ buckets, monthly }) {
       {hover !== null && (
         <div className="tooltip" style={{ left: `${Math.min(86, Math.max(14, ((M.l + slot * hover + slot / 2) / W) * 100))}%` }} role="status">
           <b>{buckets[hover].label}</b>
-          {SERIES.map((s) => (
+          {series.map((s) => (
             <span key={s.key} className="tip-row"><i style={{ background: s.color }} />{s.name}<em>{buckets[hover].counts[s.key]}</em></span>
           ))}
           <span className="tip-row total">Total<em>{buckets[hover].total}</em></span>
@@ -124,14 +126,14 @@ function StackedBars({ buckets, monthly }) {
   );
 }
 
-function Table({ buckets }) {
+function Table({ buckets, series }) {
   return (
     <div className="table-scroll">
       <table>
-        <thead><tr><th>{buckets.length && buckets[0].key.length === 7 ? 'Month' : 'Day'}</th>{SERIES.map((s) => <th key={s.key}>{s.name}</th>)}<th>Total</th></tr></thead>
+        <thead><tr><th>{buckets.length && buckets[0].key.length === 7 ? 'Month' : 'Day'}</th>{series.map((s) => <th key={s.key}>{s.name}</th>)}<th>Total</th></tr></thead>
         <tbody>
           {buckets.map((b) => (
-            <tr key={b.key}><td className="nowrap">{b.label}</td>{SERIES.map((s) => <td key={s.key}>{b.counts[s.key]}</td>)}<td><b>{b.total}</b></td></tr>
+            <tr key={b.key}><td className="nowrap">{b.label}</td>{series.map((s) => <td key={s.key}>{b.counts[s.key]}</td>)}<td><b>{b.total}</b></td></tr>
           ))}
         </tbody>
       </table>
@@ -139,14 +141,27 @@ function Table({ buckets }) {
   );
 }
 
-// Benefit uses over time and by perk, for a date range (from the perk log).
-export default function Graphs({ pin, onAuthError }) {
+const monthStart = (ymd) => `${ymd.slice(0, 8)}01`;
+const PRESETS = [
+  { key: 'month', label: 'This month', range: () => [monthStart(todayYmd()), todayYmd()] },
+  { key: 'last', label: 'Last month', range: () => { const last = addDays(monthStart(todayYmd()), -1); return [monthStart(last), last]; } },
+  { key: '30', label: 'Last 30 days', range: () => [addDays(todayYmd(), -29), todayYmd()] },
+  { key: 'year', label: 'This year', range: () => [`${todayYmd().slice(0, 5)}01-01`, todayYmd()] },
+];
+
+const csvCell = (v) => `"${String(v ?? '').replace(/^[=+@-]/, "'").replace(/"/g, '""')}"`;
+
+// Benefit uses over time and by perk, for a date range (from the perk log), with filters.
+export default function Report({ pin, onAuthError }) {
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(todayYmd);
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [asTable, setAsTable] = useState(false);
+  const [off, setOff] = useState([]); // perks switched off
+  const [query, setQuery] = useState('');
+  const [groupBy, setGroupBy] = useState('auto');
 
   const load = useCallback(async (fresh = false) => {
     setLoading(true);
@@ -168,21 +183,73 @@ export default function Graphs({ pin, onAuthError }) {
     load();
   }, [load, from, to]);
 
-  const { buckets, monthly } = useMemo(() => buildBuckets(from, to, rows || []), [from, to, rows]);
-  const totals = useMemo(() => SERIES.map((s) => ({ ...s, total: buckets.reduce((n, b) => n + b.counts[s.key], 0) })), [buckets]);
-  const grand = totals.reduce((n, s) => n + s.total, 0);
-  const maxTotal = Math.max(...totals.map((s) => s.total), 1);
+  const series = useMemo(() => SERIES.filter((s) => !off.includes(s.key)), [off]);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase().replace(/^#/, '');
+    return (rows || []).filter((r) => !q || String(r.mug).includes(q) || String(r.member).toLowerCase().includes(q));
+  }, [rows, query]);
+  const base = useMemo(() => buildBuckets(from, to, filtered, groupBy), [from, to, filtered, groupBy]);
+  const buckets = useMemo(() => withTotals(base.buckets, series), [base, series]);
+  const monthly = base.monthly;
+  const totals = useMemo(() => SERIES.map((s) => ({ ...s, on: !off.includes(s.key), total: base.buckets.reduce((n, b) => n + b.counts[s.key], 0) })), [base, off]);
+  const shown = totals.filter((s) => s.on);
+  const grand = shown.reduce((n, s) => n + s.total, 0);
+  const maxTotal = Math.max(...shown.map((s) => s.total), 1);
+  const busiest = buckets.reduce((m, b) => (b.total > m.total ? b : m), { total: 0, label: '' });
+  const filtersOn = off.length > 0 || query.trim() !== '' || groupBy !== 'auto';
+
+  const pick = (range) => { const [f, t] = range(); setFrom(f); setTo(t); };
+  const toggle = (key) => setOff((o) => (o.includes(key) ? o.filter((k) => k !== key) : [...o, key]));
+  const reset = () => { setOff([]); setQuery(''); setGroupBy('auto'); pick(PRESETS[0].range); };
+
+  const exportCsv = () => {
+    const head = [monthly ? 'Month' : 'Day', ...series.map((s) => s.name), 'Total'];
+    const lines = [head, ...buckets.map((b) => [b.key, ...series.map((s) => b.counts[s.key]), b.total])];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.map((l) => l.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv' }));
+    a.download = `benefit-report_${from}_to_${to}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
 
   return (
     <section className="panel viz">
       <div className="row">
-        <h2>Benefit graphs</h2>
-        <button className="secondary" onClick={() => load(true)} disabled={loading}>{loading ? <>Loading…<span className="spinner" /></> : 'Refresh'}</button>
+        <h2>Benefit report</h2>
+        <div className="row-actions">
+          <button className="secondary" onClick={exportCsv} disabled={!grand}>Export CSV</button>
+          <button className="secondary" onClick={() => load(true)} disabled={loading}>{loading ? <>Loading…<span className="spinner" /></> : 'Refresh'}</button>
+        </div>
+      </div>
+
+      <div className="presets" role="group" aria-label="Date range">
+        {PRESETS.map((p) => {
+          const [f, t] = p.range();
+          return <button key={p.key} className={`chip-btn ${f === from && t === to ? 'selected' : ''}`} onClick={() => pick(p.range)}>{p.label}</button>;
+        })}
       </div>
 
       <div className="filters">
         <label>From <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} /></label>
         <label>To <input type="date" value={to} min={from} onChange={(e) => e.target.value && setTo(e.target.value)} /></label>
+        <label>Member <input type="search" placeholder="Name or mug number" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
+        <label>Group by
+          <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+            <option value="auto">Automatic</option>
+            <option value="day">Day</option>
+            <option value="month">Month</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="presets" role="group" aria-label="Perks shown">
+        <span className="label">Perks</span>
+        {SERIES.map((s) => (
+          <button key={s.key} className={`chip-btn perk ${off.includes(s.key) ? '' : 'selected'}`} aria-pressed={!off.includes(s.key)} onClick={() => toggle(s.key)}>
+            <i style={{ background: s.color }} />{s.name}
+          </button>
+        ))}
+        {filtersOn && <button className="link" onClick={reset}>Reset filters</button>}
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -190,24 +257,23 @@ export default function Graphs({ pin, onAuthError }) {
 
       {rows && (
         <>
-          <div className="summary two">
-            <div className="mini"><strong>{grand}</strong><span className="label">Benefit uses in this period</span></div>
+          <div className="summary">
+            <div className="mini"><strong>{grand}</strong><span className="label">Benefit uses{query.trim() ? ` for “${query.trim()}”` : ''}</span></div>
             <div className="mini"><strong>{buckets.length ? (grand / buckets.length).toFixed(1) : '0'}</strong><span className="label">Average per {monthly ? 'month' : 'day'}</span></div>
+            <div className="mini"><strong>{busiest.total || '–'}</strong><span className="label">{busiest.total ? `Busiest ${monthly ? 'month' : 'day'} · ${busiest.label}` : `Busiest ${monthly ? 'month' : 'day'}`}</span></div>
           </div>
 
           <div className="row section-title">
             <h3>Uses per {monthly ? 'month' : 'day'}</h3>
             <button className="secondary" onClick={() => setAsTable((v) => !v)}>{asTable ? 'Show chart' : 'Show as table'}</button>
           </div>
-          <ul className="legend">
-            {SERIES.map((s) => <li key={s.key}><i style={{ background: s.color }} />{s.name}</li>)}
-          </ul>
-          {grand === 0 ? <p className="muted">No benefit use for these dates.</p>
-            : asTable ? <Table buckets={buckets} /> : <StackedBars buckets={buckets} monthly={monthly} />}
+          {series.length === 0 ? <p className="muted">Switch on at least one perk.</p>
+            : grand === 0 ? <p className="muted">No benefit use for these filters.</p>
+            : asTable ? <Table buckets={buckets} series={series} /> : <StackedBars buckets={buckets} monthly={monthly} series={series} />}
 
           <h3 className="section-title">Uses by perk</h3>
           <div className="hbars">
-            {totals.map((s) => (
+            {shown.map((s) => (
               <div className="hbar" key={s.key}>
                 <span className="hbar-name">{s.name}<small>{s.note}</small></span>
                 <span className="hbar-track"><span className="hbar-fill" style={{ width: `${(s.total / maxTotal) * 100}%`, background: s.color }} /></span>
