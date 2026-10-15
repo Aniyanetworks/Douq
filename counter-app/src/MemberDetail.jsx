@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { withRetry, getLog, getReminders, AuthError, readCache, cacheKey, UNLIMITED_PERKS } from '../../bar-app/src/api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from '../../bar-app/src/format.js';
 import { RANGES, rangeFrom, sameMug } from '../../bar-app/src/format.js';
@@ -10,11 +10,15 @@ const PERK_TEXT = {
 };
 
 // The right-hand panel: perks this month, the mug order pipeline and this member's history.
-export default function MemberDetail({ pin, member, onAuthError, onMugStatus }) {
+export default function MemberDetail({ pin, member, members = [], onAuthError, onMugStatus, onSaveMember }) {
   const [range, setRange] = useState('all');
   const [log, setLog] = useState(null);
   const [reminders, setReminders] = useState(null);
   const [error, setError] = useState('');
+  const dialog = useRef(null);
+  const [form, setForm] = useState({ name: '', email: '', phone: '', mug: '' });
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     let live = true;
@@ -36,6 +40,33 @@ export default function MemberDetail({ pin, member, onAuthError, onMugStatus }) 
     return () => { live = false; };
   }, [pin, member.mug, range, onAuthError]);
 
+  const startEdit = () => {
+    setForm({ name: member.name || '', email: member.email || '', phone: member.phone || '', mug: member.mug || '' });
+    setEditError('');
+    dialog.current.showModal();
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    const email = form.email.trim();
+    if (!form.name.trim()) return setEditError('A name is required.');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setEditError('That email address does not look right.');
+    if (form.phone.trim() && form.phone.replace(/\D/g, '').length < 7) return setEditError('That phone number looks too short.');
+    const mug = form.mug.replace(/\D/g, '');
+    if (!mug || mug.length > 8) return setEditError('The mug number must be digits only.');
+    if (members.some((m) => m.id !== member.id && sameMug(m.mug, mug))) return setEditError(`Mug #${mug} already belongs to another member.`);
+    setSaving(true);
+    setEditError('');
+    try {
+      await onSaveMember(member, { name: form.name.trim(), email, phone: form.phone.trim(), mug });
+      dialog.current.close();
+    } catch {
+      setEditError("Couldn't save the changes. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const counts = useMemo(() => {
     const c = { used: 0, voided: 0, alerts: 0 };
     for (const r of log || []) {
@@ -56,11 +87,40 @@ export default function MemberDetail({ pin, member, onAuthError, onMugStatus }) 
     <>
       <div className="row">
         <div>
-          <h2 className="member-name">{member.name || 'Unknown member'}</h2>
+          <div className="member-title">
+            <h2 className="member-name">{member.name || 'Unknown member'}</h2>
+            <span className="pill">{member.mugStatus ? 'Member' : 'Active member'}</span>
+          </div>
           <span className="label">#{member.mug} · {member.phone || member.email || 'no contact'}</span>
         </div>
-        <span className="pill">{member.mugStatus ? 'Member' : 'Active member'}</span>
+        <div className="member-actions">
+          <button type="button" className="secondary small" onClick={startEdit}>Edit</button>
+        </div>
       </div>
+
+      <dialog ref={dialog} className="member-dialog">
+        <form className="member-edit" onSubmit={save}>
+          <h2>Edit member <span className="label">#{member.mug}</span></h2>
+          <label>Mug number
+            <input type="text" inputMode="numeric" value={form.mug} disabled={saving} onChange={(e) => setForm({ ...form, mug: e.target.value })} />
+          </label>
+          {sameMug(form.mug, member.mug) ? null : <p className="label">Past perk history stays under the old number #{member.mug}. Toast tabs must use the new number.</p>}
+          <label>Name
+            <input type="text" value={form.name} autoFocus disabled={saving} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </label>
+          <label>Email
+            <input type="email" value={form.email} disabled={saving} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </label>
+          <label>Phone
+            <input type="tel" value={form.phone} disabled={saving} placeholder="+1 555 123 4567" onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          </label>
+          {editError && <p className="error">{editError}</p>}
+          <div className="row">
+            <button type="button" className="secondary" disabled={saving} onClick={() => dialog.current.close()}>Cancel</button>
+            <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
+          </div>
+        </form>
+      </dialog>
 
       <div className="benefits">
         {member.perks.map((p) => {

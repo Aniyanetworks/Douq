@@ -319,3 +319,118 @@ dialog.intake::backdrop { background: rgba(25, 60, 49, .45); }
 .chip-btn.perk:not(.selected) { background: white; border: 1px solid var(--line); color: var(--muted); }
 .chip-btn.perk i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .chip-btn.perk:not(.selected) i { opacity: .35; }
+
+.member-actions { display: flex; gap: 10px; align-items: center; }
+.member-dialog { width: min(440px, 94vw); box-shadow: 0 20px 60px rgba(25, 60, 49, .3); }
+.member-dialog::backdrop { background: rgba(25, 60, 49, .45); }
+.member-edit { display: grid; gap: 12px; }
+.member-edit h2 { margin: 0; }
+.member-edit label { display: grid; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; color: #6d786d; }
+.member-edit .row { justify-content: flex-end; margin-top: 8px; }
+
+/* ---------- small phones ---------- */
+.member-name, .member small, .member b { overflow-wrap: anywhere; }
+.row > div { min-width: 0; }
+@media (max-width: 850px) {
+  /* 16px inputs stop iOS from zooming the page when a field is focused */
+  input, select, textarea { font-size: 16px; }
+  .member-actions { justify-content: flex-end; }
+}
+@media (max-width: 480px) {
+  main { padding: 12px; }
+  .panel, .stat { padding: 16px; }
+  .member-name { font-size: 23px; }
+  .tabs { margin: 14px 0; }
+  .tabs button { padding: 10px 12px; }
+  .pipeline .step { font-size: 11px; padding: 0 2px; }
+  .pipeline li:not(:last-child)::after { left: calc(50% + 20px); right: calc(-50% + 20px); }
+  .dot { width: 30px; height: 30px; }
+  .pipeline li:not(:last-child)::after { top: 15px; }
+  dialog, .member-dialog, dialog.intake { padding: 18px; width: calc(100vw - 24px); max-width: none; max-height: calc(100dvh - 24px); overflow-y: auto; }
+  .member-edit .row { flex-direction: column-reverse; align-items: stretch; }
+  .member-edit .row button { width: 100%; }
+  th { letter-spacing: 0.5px; }
+}
+
+/* ---------- compact phone layout ---------- */
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+  header { padding: 10px 12px; gap: 8px; }
+  .brand { font-size: 18px; }
+  .brand small { font-size: 9px; letter-spacing: 2px; margin-top: 3px; }
+  .header-actions { gap: 6px; flex-wrap: wrap; }
+  .header-actions .pill { display: none; }
+  .header-btn, .icon-btn { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+  .icon-btn { width: 34px; height: 34px; min-height: 0; padding: 0; flex: none; }
+  .icon-btn svg { width: 18px; height: 18px; flex: none; }
+  main { padding: 10px; }
+  h1 { font-size: 21px; line-height: 1.2; margin: 0 0 4px; }
+  .lead { font-size: 13px; margin: 0; }
+  button { padding: 8px 12px; font-size: 13px; border-radius: 8px; }
+  button.small { padding: 6px 10px; font-size: 12px; }
+  .refresh { gap: 8px; }
+  .tabs { gap: 4px; margin: 10px 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { padding: 7px 12px; white-space: nowrap; flex: none; }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+  .stat, .panel { padding: 10px; border-radius: 10px; }
+  .stat .label { font-size: 11px; line-height: 1.25; }
+  .stat strong { font-size: 18px; margin-top: 2px; }
+  .stat strong.period { font-size: 14px; line-height: 20px; }
+  .stat .sub { font-size: 10px; margin-top: 2px; line-height: 1.25; }
+  .panel.side { padding: 0; }
+  .aside-inner, .panel.side { padding: 12px; }
+  .member { padding: 10px 8px; }
+  .member small { margin-top: 3px; font-size: 12px; }
+  .aside-inner > .members { max-height: 40vh; }
+  .member-name { font-size: 20px; margin-bottom: 4px; }
+  .benefits { gap: 8px; }
+  .benefit { padding: 12px; }
+  .benefit h3 { font-size: 15px; margin: 4px 0; }
+  .benefit p { margin: 0 0 8px; font-size: 13px; }
+  .benefit-btn { padding: 8px 12px; font-size: 13px; border-radius: 8px; }
+  .section-title, h2 { font-size: 16px; }
+  .row.section-title { margin: 16px 0 6px; }
+  td, th { padding: 8px 6px 8px 3px; }
+  input, select { padding: 9px 10px; }
+}
+
+/* compact Activity tab on phones */
+@media (max-width: 600px) {
+  .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+  .filters label { gap: 3px; font-size: 11px; }
+  .filters input, .filters select { height: 36px; padding: 0 8px; font-size: 14px; }
+  .filters button { height: 36px; padding: 0 12px; }
+  .summary { gap: 6px; margin: 0 0 10px; }
+  .mini { padding: 8px 10px; border-radius: 10px; }
+  .mini strong { font-size: 18px; }
+  .mini .label { font-size: 11px; }
+  .chips { gap: 5px; margin: 0 0 12px; }
+  .chip { font-size: 11px; padding: 4px 8px; }
+  .table-scroll { margin: 0 -4px; }
+  table { font-size: 12px; }
+  th { font-size: 10px; letter-spacing: 0.3px; padding: 6px 4px; white-space: normal; }
+  td { padding: 7px 4px; }
+  td .label { font-size: 11px; }
+  td.nowrap { white-space: normal; }
+  .log-table td:first-child, .log-table th:first-child { width: auto; }
+  .log-table td.detail { width: auto; font-size: 11px; }
+  .badge { font-size: 11px; padding: 3px 7px; white-space: normal; }
+}
+
+/* compact Report tab on phones */
+@media (max-width: 600px) {
+  .row-actions { gap: 6px; }
+  .presets { gap: 5px; margin: 0 0 10px; }
+  .chip-btn { padding: 5px 10px; font-size: 12px; }
+  .chip-btn.perk { gap: 5px; }
+  .chip-btn.perk i { width: 8px; height: 8px; }
+  .viz h3 { font-size: 15px; }
+  .hbars { gap: 6px; margin: 8px 0 10px; }
+  .hbar { font-size: 12px; grid-template-columns: 90px 1fr 28px; gap: 6px; }
+  .hbar-track { height: 10px; }
+  .legend { font-size: 11px; gap: 4px 12px; margin: 6px 0 4px; }
+}
+
+.member-title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 8px; }
+.member-title .member-name { margin: 0; }

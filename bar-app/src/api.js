@@ -134,6 +134,18 @@ export async function setMugStatus(pin, member, status) {
   }
 }
 
+// Saves a member's name, email and phone in GHL, then patches the cached member list. Returns what the server stored.
+export async function updateMember(pin, member, { name, email, phone, mug }) {
+  const saved = await call('member-update', pin, { contactId: member.id, name, email, phone, mug });
+  const changes = { name: saved.name ?? name, email: saved.email ?? email, phone: saved.phone ?? phone, mug: saved.mug || mug || member.mug };
+  const key = cacheKey.members();
+  const cached = readCache(key);
+  if (cached?.data?.members) {
+    writeCache(key, { ...cached.data, members: cached.data.members.map((m) => (m.id === member.id ? { ...m, ...changes } : m)) });
+  }
+  return changes;
+}
+
 export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
   const key = cacheKey.reminders(from, to);
   return recent(key, maxAge) || shared(key, async () => writeCache(key, need(await call('reminders', pin, { from, to }), 'reminders')));
@@ -143,6 +155,7 @@ export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
 let demoPin = '1234'; // the Settings page can change it while the demo runs
 const demoSettings = { ghl: {}, urls: { signupFormUrl: 'https://example.com/join-the-mug-club' }, toast: {} };
 const demoStatus = { d001: 'Delivered', d002: 'Received', d014: 'Ordered' };
+const demoEdits = {}; // member edits made while the demo runs
 const perks = (used) => [
   { key: 'free_pour', label: 'Free Monthly Pour', used: used.includes('free_pour'), date: used.includes('free_pour') ? '2026-09-12' : '' },
   { key: 'four_pack', label: '50% off 4-Pack', used: used.includes('four_pack'), date: used.includes('four_pack') ? '2026-09-20' : '' },
@@ -174,6 +187,11 @@ async function demo(action, pin, extra) {
     demoStatus[contactId] = status;
     return { ok: true, status };
   }
+  if (action === 'member-update') {
+    const { name, email, phone, mug } = extra;
+    demoEdits[contactId] = { name, email, phone, ...(mug ? { mug } : {}) };
+    return { ok: true, name, email, phone, mug };
+  }
   if (action === 'members') {
     return {
       period: '2026-09',
@@ -183,7 +201,7 @@ async function demo(action, pin, extra) {
         { id: 'd002', mug: '002', name: 'Jane Smith', phone: '+13035550102', email: 'jane@example.com', perks: perks(['free_pour']), initialPour: '2026-09-02' },
         { id: 'd014', mug: '014', name: 'Carlos Rivera', phone: '+13035550114', email: 'carlos@example.com', perks: perks([]), initialPour: '' },
         { id: 'd037', mug: '037', name: 'Doug Reed', phone: '+13035550137', email: 'doug@example.com', perks: perks(['four_pack']), initialPour: '2026-08-15' },
-      ].map((m) => ({ ...m, mugStatus: demoStatus[m.id] || '' })),
+      ].map((m) => ({ ...m, ...demoEdits[m.id], mugStatus: demoStatus[m.id] || '' })),
     };
   }
   if (action === 'reminders') {

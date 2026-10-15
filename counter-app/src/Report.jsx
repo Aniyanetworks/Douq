@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { withRetry, getLog, AuthError, readCache, cacheKey, UNLIMITED_PERKS } from '../../bar-app/src/api.js';
 import { todayYmd, shortDay } from '../../bar-app/src/format.js';
 
@@ -68,19 +68,32 @@ const topRounded = (x, y, w, h, r) => {
   return `M${x},${y + h}V${y + k}Q${x},${y} ${x + k},${y}H${x + w - k}Q${x + w},${y} ${x + w},${y + k}V${y + h}Z`;
 };
 
-const W = 760, H = 270, M = { l: 38, r: 8, t: 10, b: 30 };
+const M = { l: 30, r: 6, t: 10, b: 28 };
 
 function StackedBars({ buckets, monthly, series }) {
   const [hover, setHover] = useState(null);
+  // the chart is drawn at the width it is shown at, so text and bars keep their real size on a phone
+  const wrap = useRef(null);
+  const [W, setW] = useState(760);
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return undefined;
+    const measure = () => setW(Math.max(260, Math.round(el.clientWidth)));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = W < 480 ? 210 : 270;
   const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
   const { top, ticks } = useMemo(() => niceTicks(Math.max(...buckets.map((b) => b.total))), [buckets]);
   const slot = plotW / buckets.length;
   const bw = Math.max(3, Math.min(30, slot * 0.7));
-  const every = Math.ceil(buckets.length / 10);
+  const every = Math.ceil(buckets.length / Math.max(2, Math.floor(plotW / 56))); // about one label per 56px
   const y = (v) => M.t + plotH - (v / top) * plotH;
 
   return (
-    <div className="chart-wrap" onMouseLeave={() => setHover(null)}>
+    <div className="chart-wrap" ref={wrap} onMouseLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Benefit uses per ${monthly ? 'month' : 'day'}, stacked by perk. A table view is available.`}>
         {ticks.map((t) => (
           <g key={t}>
@@ -108,7 +121,7 @@ function StackedBars({ buckets, monthly, series }) {
                   : <rect key={s.key} x={x} y={y1} width={bw} height={h} fill={s.color} opacity={hover === null || hover === i ? 1 : 0.55} />;
               })}
               {i % every === 0 && <text x={cx} y={H - 10} textAnchor="middle" className="tick">{b.label}</text>}
-              <rect x={M.l + slot * i} y={M.t} width={slot} height={plotH} fill="transparent" onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} />
+              <rect x={M.l + slot * i} y={M.t} width={slot} height={plotH} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} onFocus={() => setHover(i)} />
             </g>
           );
         })}

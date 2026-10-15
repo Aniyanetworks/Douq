@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | settings.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\nconst route = ['log', 'reminders', 'mug-status'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '' } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -193,6 +193,30 @@
               },
               "renameOutput": true,
               "outputKey": "settings"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "32879ecc-13e1-4a45-87e6-2eb609182844",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "member-update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "member-update"
             }
           ]
         },
@@ -732,6 +756,76 @@
         1232,
         820
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\n// Staff edit a member's name, email or phone from the counter site. The mug number is optional; the site checks it is not already taken.\nconst req = $('Check Request').first().json;\nif (!/^[A-Za-z0-9]{10,40}$/.test(req.contactId)) throw new Error('Bad contact id');\nconst name = String(req.name || '').replace(/\\s+/g, ' ').trim();\nif (!name || name.length > 120) throw new Error('A name is required');\nconst email = String(req.email || '').trim().toLowerCase();\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error('Bad email');\nlet phone = String(req.phone || '').trim();\nif (phone) {\n  const digits = phone.replace(/\\D/g, '');\n  if (digits.length < 7 || digits.length > 15) throw new Error('Bad phone');\n  phone = phone.startsWith('+') ? '+' + digits : digits.length === 10 ? '+1' + digits : digits.length === 11 && digits[0] === '1' ? '+' + digits : '+' + digits;\n}\nconst [firstName, ...rest] = name.split(' ');\nconst body = { firstName, lastName: rest.join(' ') };\nif (email) body.email = email;\nif (phone) body.phone = phone;\nconst mug = String(req.mug || '').replace(/\\D/g, '');\nif (req.mug !== undefined && req.mug !== null && String(req.mug).trim() !== '') {\n  if (!mug || mug.length > 8) throw new Error('Bad mug number');\n  body.customFields = [{ id: cfg.MUG_FIELD, field_value: mug }];\n}\n$getWorkflowStaticData('global').members = null; // the next member list read sees the change\nreturn [{ json: { contactId: req.contactId, body, name, email, phone, mug } }];"
+      },
+      "id": "bb5fb6d7-e32f-4507-8213-2bf610fac264",
+      "name": "Validate Member Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        1500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "2105c538-498a-4c90-b299-5affcc18dfff",
+      "name": "Update Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        1500
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, name: $('Validate Member Update').first().json.name, email: $('Validate Member Update').first().json.email, phone: $('Validate Member Update').first().json.phone, mug: $('Validate Member Update').first().json.mug }) }}",
+        "options": {}
+      },
+      "id": "f4ceb8d5-5bcd-47e5-ae1a-de3e38166227",
+      "name": "Member Updated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        1500
+      ]
     }
   ],
   "connections": {
@@ -808,6 +902,13 @@
         [
           {
             "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Member Update",
             "type": "main",
             "index": 0
           }
@@ -991,6 +1092,28 @@
         [
           {
             "node": "Send Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Member Update": {
+      "main": [
+        [
+          {
+            "node": "Update Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Member": {
+      "main": [
+        [
+          {
+            "node": "Member Updated",
             "type": "main",
             "index": 0
           }

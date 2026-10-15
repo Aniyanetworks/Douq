@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { setMugStatus, AuthError } from '../../bar-app/src/api.js';
+import { setMugStatus, updateMember, AuthError } from '../../bar-app/src/api.js';
 import { sameMug } from '../../bar-app/src/format.js';
 import { MugPill } from './MugPipeline.jsx';
 import MemberDetail from './MemberDetail.jsx';
@@ -73,6 +73,16 @@ export default function Counter({ pin, onAuthError, state, focus, clearFocus }) 
     patch(m.id, { mugStatus: status });
   }, [pin, onAuthError, patch]);
 
+  const saveMember = useCallback(async (m, fields) => {
+    try {
+      const changes = await updateMember(pin, m, fields);
+      patch(m.id, changes);
+    } catch (err) {
+      if (err instanceof AuthError) onAuthError();
+      throw err;
+    }
+  }, [pin, onAuthError, patch]);
+
   return (
     <section className="layout">
       <aside className="panel side">
@@ -114,7 +124,7 @@ export default function Counter({ pin, onAuthError, state, focus, clearFocus }) 
 
       <article className="panel" ref={detail}>
         {member
-          ? <MemberDetail key={member.id} pin={pin} member={member} onAuthError={onAuthError} onMugStatus={changeStatus} />
+          ? <MemberDetail key={member.id} pin={pin} member={member} members={data?.members || []} onAuthError={onAuthError} onMugStatus={changeStatus} onSaveMember={saveMember} />
           : <p className="muted">Pick a member to see their benefits.</p>}
       </article>
     </section>
