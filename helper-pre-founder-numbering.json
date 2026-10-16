@@ -1,0 +1,419 @@
+{
+  "name": "Helper: Pre Founder tag and P-numbers (dry run first)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "feccff84-30d5-40a3-9095-6d250971784e",
+      "name": "Run manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG: Pre Founder tag + P-numbers for Founding Membership subscribers\n// ============================================================\nreturn [{ json: {\n  DRY_RUN: true,                    // true = only list what WOULD change. Set false to write to GHL.\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MUG_FIELD: 'vWklTcHjmQV1tW52XIAb', // GHL mug number custom field\n  TAG: 'Pre Founder',\n  PREFIX: 'P',\n  START: 1,                          // first number: P00001\n  PAD: 5,                            // digits after the prefix (P00001, P00002, ...)\n  SOURCE_MATCH: 'founding membership', // only subscriptions whose source/product name contains this (lower case); '' = all\n  KEEP_EXISTING: false,              // false = every contact gets a new P number, replacing any existing mug number (set true to keep existing ones)\n  MAX_PAGES: 20,                     // 100 subscriptions per page\n} }];"
+      },
+      "id": "c8dc8053-8af2-4e2d-b3af-2b11d36a13d1",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const n = $('Config').first().json.MAX_PAGES;\nreturn Array.from({ length: n }, (_, i) => ({ json: { offset: i * 100 } }));"
+      },
+      "id": "c319b4f1-fde0-4e9c-9a3a-431bdbe2d322",
+      "name": "Page Offsets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/payments/subscriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "altId",
+              "value": "={{ $('Config').first().json.LOCATION_ID }}"
+            },
+            {
+              "name": "altType",
+              "value": "location"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "offset",
+              "value": "={{ $json.offset }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "767b2167-f9bc-411c-ae0c-3b4e9570f64f",
+      "name": "Get Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// One row per contact: the oldest Founding Membership subscription decides the order.\nconst cfg = $('Config').first().json;\nconst match = String(cfg.SOURCE_MATCH || '').toLowerCase();\nconst rows = [];\nfor (const page of $input.all()) {\n  const list = page.json.data || page.json.subscriptions || [];\n  for (const s of list) {\n    const text = JSON.stringify([s.entitySourceName, s.entitySourceType, s.name, s.productName, s.sourceName]).toLowerCase();\n    if (match && !text.includes(match)) continue;\n    const contactId = s.contactId || (s.contact && s.contact.id) || '';\n    if (!contactId) continue;\n    rows.push({ contactId, name: s.contactName || (s.contact && s.contact.name) || '', created: s.createdAt || s.createdOn || '', status: s.status || '' });\n  }\n}\nrows.sort((a, b) => String(a.created).localeCompare(String(b.created)));\nconst seen = new Set();\nconst out = [];\nfor (const r of rows) { if (!seen.has(r.contactId)) { seen.add(r.contactId); out.push({ json: r }); } }\nif (!out.length) throw new Error('No Founding Membership subscriptions found. Check SOURCE_MATCH, the token scope (payments/subscriptions.readonly) and the field names in this node.');\nreturn out;"
+      },
+      "id": "bfe06c52-907b-4893-b59a-f3227c39bb67",
+      "name": "Build Contact List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "a0b62d2f-9609-4b35-bd8c-04d412f0938d",
+      "name": "Get Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gives each contact the next P number (oldest subscription first). Contacts that already have a mug number keep it.\nconst cfg = $('Config').first().json;\nconst contacts = $input.all();\nconst plan = $('Build Contact List').all();\nlet next = cfg.START;\nconst out = [];\ncontacts.forEach((item, i) => {\n  const base = plan[i].json;\n  const c = item.json.contact || item.json;\n  const cf = (c.customFields || []).find((f) => f.id === cfg.MUG_FIELD);\n  const existing = cf && cf.value ? String(cf.value).trim() : '';\n  const hasTag = (c.tags || []).map((t) => String(t).toLowerCase()).includes(cfg.TAG.toLowerCase());\n  let mug = existing;\n  let action = 'keep existing number';\n  if (!existing || !cfg.KEEP_EXISTING) {\n    mug = cfg.PREFIX + String(next).padStart(cfg.PAD, '0');\n    next++;\n    action = existing ? 'REPLACE existing number' : 'assign new number';\n  }\n  out.push({ json: { contactId: base.contactId, name: base.name || [c.firstName, c.lastName].filter(Boolean).join(' '), email: c.email || '', subscribed: base.created, existingMug: existing, mug, tagAlready: hasTag, action, dryRun: cfg.DRY_RUN } });\n});\nreturn out;"
+      },
+      "id": "1888ede5-54dd-40c6-b926-a5ca041081d9",
+      "name": "Assign Numbers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "db4de24a-869e-4aca-80f3-c4ea69198098",
+              "leftValue": "={{ $json.dryRun }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aeb7ae93-f8eb-432e-ad6f-b52b8d7d6e81",
+      "name": "Write? (not a dry run)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.TAG] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "7779a22a-aa42-4601-a2ed-8cacb1d2bd5d",
+      "name": "Add Pre Founder Tag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        -100
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Assign Numbers').item.json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Config').first().json.MUG_FIELD, field_value: $('Assign Numbers').item.json.mug }] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "8d3fa0cf-dc75-4529-9380-de956fcbdb5c",
+      "name": "Set Mug Number",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        -100
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Page Offsets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page Offsets": {
+      "main": [
+        [
+          {
+            "node": "Get Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Build Contact List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Contact List": {
+      "main": [
+        [
+          {
+            "node": "Get Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Contact": {
+      "main": [
+        [
+          {
+            "node": "Assign Numbers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Numbers": {
+      "main": [
+        [
+          {
+            "node": "Write? (not a dry run)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write? (not a dry run)": {
+      "main": [
+        [
+          {
+            "node": "Add Pre Founder Tag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Add Pre Founder Tag": {
+      "main": [
+        [
+          {
+            "node": "Set Mug Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
