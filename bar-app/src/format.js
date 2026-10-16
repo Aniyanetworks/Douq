@@ -32,7 +32,23 @@ export const eventInfo = (e) => EVENTS[e] || { label: e || 'Alert', tone: 'warn'
 export const isAlert = (e) => !['redeem', 'used', 'void'].includes(e);
 
 // ---- helpers for one member's history (shared with the other app)
-export const sameMug = (a, b) => String(a).replace(/^0+/, '') === String(b).replace(/^0+/, '');
+// A mug number is digits ("03158") or one tier letter plus digits ("P00010"). mugKey drops the leading zeros: "P00010" -> "P10", "03158" -> "3158".
+export const mugKey = (s) => {
+  const t = String(s ?? '').trim().toUpperCase();
+  const m = t.match(/^([A-Z])?\s*0*(\d+)$/);
+  return m ? (m[1] || '') + m[2] : t;
+};
+export const sameMug = (a, b) => mugKey(a) === mugKey(b);
+// Number for sorting: plain numbers by value, lettered tiers after them
+export const mugRank = (s) => {
+  const m = mugKey(s).match(/^([A-Z])?(\d+)$/);
+  return m ? (m[1] ? Number(m[2]) - 1e9 : Number(m[2])) : 0;
+};
+// What staff typed in a mug field, cleaned: "p 10" -> "P00010", "3158" -> "03158" ('' when it is not a mug number)
+export const cleanMug = (s) => {
+  const m = String(s ?? '').trim().toUpperCase().match(/^([PFEIV])?\s*#?\s*(\d{1,8})$/);
+  return m ? (m[1] || '') + m[2].padStart(5, '0') : '';
+};
 
 // First day of the month `back` months ago, as YYYY-MM-DD
 const monthStart = (back) => {

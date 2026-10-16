@@ -199,7 +199,7 @@ export default function Report({ pin, onAuthError }) {
   const series = useMemo(() => SERIES.filter((s) => !off.includes(s.key)), [off]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase().replace(/^#/, '');
-    return (rows || []).filter((r) => !q || String(r.mug).includes(q) || String(r.member).toLowerCase().includes(q));
+    return (rows || []).filter((r) => !q || String(r.mug).toLowerCase().includes(q) || String(r.member).toLowerCase().includes(q));
   }, [rows, query]);
   const base = useMemo(() => buildBuckets(from, to, filtered, groupBy), [from, to, filtered, groupBy]);
   const buckets = useMemo(() => withTotals(base.buckets, series), [base, series]);

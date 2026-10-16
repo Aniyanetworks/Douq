@@ -49,7 +49,7 @@ export default function Activity({ pin, onAuthError, onOpenMember }) {
     return (rows || []).filter((r) =>
       (event === 'all' || (event === 'alerts' ? isAlert(r.event) : r.event === event)) &&
       (perk === 'all' || r.perk === perk) &&
-      (!q || String(r.mug).includes(q) || String(r.member).toLowerCase().includes(q)),
+      (!q || String(r.mug).toLowerCase().includes(q) || String(r.member).toLowerCase().includes(q)),
     );
   }, [rows, event, perk, query]);
 

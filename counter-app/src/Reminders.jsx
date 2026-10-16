@@ -46,7 +46,7 @@ export default function Reminders({ pin, onAuthError, onOpenMember }) {
     const q = query.trim().toLowerCase();
     return (rows || []).filter((r) =>
       (kind === 'all' || r.kind === kind) &&
-      (!q || String(r.mug).includes(q) || String(r.member).toLowerCase().includes(q)),
+      (!q || String(r.mug).toLowerCase().includes(q) || String(r.member).toLowerCase().includes(q)),
     );
   }, [rows, kind, query]);
 

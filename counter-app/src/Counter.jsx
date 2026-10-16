@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { setMugStatus, updateMember, AuthError } from '../../bar-app/src/api.js';
-import { sameMug } from '../../bar-app/src/format.js';
+import { sameMug, mugKey, mugRank } from '../../bar-app/src/format.js';
 import { MugPill } from './MugPipeline.jsx';
 import MemberDetail from './MemberDetail.jsx';
 
 const PAGE = 50;
 
-// "37", "037", "#037" and "Mug 37" all mean mug 37
+// "37", "037", "#037" and "Mug 37" all mean mug 37; "P10" and "p00010" mean mug P00010
 const mugDigits = (s) => String(s).replace(/\D/g, '').replace(/^0+/, '');
-const mugNumber = (m) => Number(mugDigits(m.mug)) || 0;
+const mugNumber = (m) => mugRank(m.mug);
+const MUG_QUERY = /^\s*(mug)?\s*#?\s*[a-z]?\s*\d+\s*$/i;
 
 const SORTS = {
   'mug-desc': { label: 'Mug # (high → low)', compare: (a, b) => mugNumber(b) - mugNumber(a) },
@@ -20,16 +21,20 @@ const SORTS = {
 function filterMembers(list, query) {
   const q = query.trim().toLowerCase();
   if (!q) return list;
-  const byMug = /^\s*(mug)?\s*#?\s*\d+\s*$/i.test(q);
+  const byMug = MUG_QUERY.test(q);
   const mugOnly = /^\s*(mug|#)/i.test(q);
+  const typed = q.replace(/^\s*mug\s*/i, '').replace(/^#\s*/, '').replace(/\s+/g, '');
+  const lettered = /^[a-z]/i.test(typed); // "P10": that exact mug; "10": that number in any tier
   const digits = mugDigits(q);
   const phoneDigits = q.replace(/\D/g, '');
   const phoneHit = (m) => phoneDigits.length >= 4 && m.phone.replace(/\D/g, '').includes(phoneDigits);
+  const hit = (m) => (lettered ? mugKey(m.mug) === mugKey(typed) : mugDigits(m.mug) === digits);
+  const plain = (m) => !/^[A-Z]/i.test(String(m.mug));
   const found = byMug
-    ? list.filter((m) => mugDigits(m.mug) === digits || (!mugOnly && phoneHit(m)))
-    : list.filter((m) => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || phoneHit(m));
-  // an exact mug match comes first
-  return byMug ? [...found].sort((a, b) => (mugDigits(b.mug) === digits) - (mugDigits(a.mug) === digits)) : found;
+    ? list.filter((m) => hit(m) || (!mugOnly && !lettered && phoneHit(m)))
+    : list.filter((m) => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || String(m.mug).toLowerCase().includes(q) || phoneHit(m));
+  // an exact mug match comes first (a plain number before the same number in a tier)
+  return byMug ? [...found].sort((x, y) => (hit(y) && plain(y)) - (hit(x) && plain(x))) : found;
 }
 
 export default function Counter({ pin, onAuthError, state, focus, clearFocus }) {
@@ -42,7 +47,7 @@ export default function Counter({ pin, onAuthError, state, focus, clearFocus }) 
 
   const list = useMemo(() => {
     const found = filterMembers(data?.members || [], query);
-    return query.trim() && /^\s*(mug)?\s*#?\s*\d+\s*$/i.test(query) ? found : [...found].sort(SORTS[sort].compare);
+    return query.trim() && MUG_QUERY.test(query) ? found : [...found].sort(SORTS[sort].compare);
   }, [data, query, sort]);
 
   useEffect(() => { setShown(PAGE); }, [query, sort]);
