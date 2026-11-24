@@ -121,7 +121,8 @@ footer { font-size: 12px; color: #788274; margin: 25px 0; }
 .aside-inner > * { flex: none; }
 .aside-inner > .members { flex: 1; min-height: 0; overflow-y: auto; align-content: start; }
 .search { width: 100%; margin: 0 0 10px; }
-.sort { width: 100%; margin: 0 0 14px; }
+.sort { width: 100%; margin: 0 0 10px; }
+.sort:last-of-type { margin-bottom: 14px; }
 .members { display: grid; }
 .member {
   width: 100%;

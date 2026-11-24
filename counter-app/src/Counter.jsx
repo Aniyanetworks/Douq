@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { setMugStatus, updateMember, AuthError } from '../../bar-app/src/api.js';
-import { sameMug, mugKey, mugRank } from '../../bar-app/src/format.js';
+import { sameMug, mugKey, mugRank, memberTier, TIERS } from '../../bar-app/src/format.js';
 import { MugPill } from './MugPipeline.jsx';
 import MemberDetail from './MemberDetail.jsx';
 
@@ -41,16 +41,29 @@ export default function Counter({ pin, onAuthError, state, focus, clearFocus }) 
   const { data, error, patch } = state;
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('mug-desc');
+  const [tier, setTier] = useState('all'); // all | none | a tier letter
   const [selectedId, setSelectedId] = useState(null);
   const [shown, setShown] = useState(PAGE);
   const detail = useRef(null);
 
   const list = useMemo(() => {
-    const found = filterMembers(data?.members || [], query);
+    const inTier = (data?.members || []).filter((m) => tier === 'all' || memberTier(m) === (tier === 'none' ? '' : tier));
+    const found = filterMembers(inTier, query);
     return query.trim() && MUG_QUERY.test(query) ? found : [...found].sort(SORTS[sort].compare);
-  }, [data, query, sort]);
+  }, [data, query, sort, tier]);
 
-  useEffect(() => { setShown(PAGE); }, [query, sort]);
+  // member count per tier, shown in the dropdown
+  const tierCounts = useMemo(() => {
+    const c = { all: 0, none: 0 };
+    for (const m of data?.members || []) {
+      const t = memberTier(m);
+      c.all++;
+      if (t) c[t] = (c[t] || 0) + 1; else c.none++;
+    }
+    return c;
+  }, [data]);
+
+  useEffect(() => { setShown(PAGE); }, [query, sort, tier]);
 
   // Opened from the Activity tab: show that member
   useEffect(() => {
@@ -102,6 +115,11 @@ export default function Counter({ pin, onAuthError, state, focus, clearFocus }) 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <select className="sort" value={tier} onChange={(e) => setTier(e.target.value)} aria-label="Filter by tier">
+          <option value="all">All tiers ({tierCounts.all})</option>
+          {TIERS.map((t) => <option key={t.key} value={t.key}>{t.label} ({tierCounts[t.key] || 0})</option>)}
+          <option value="none">No tier ({tierCounts.none})</option>
+        </select>
         <select className="sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort members">
           {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
         </select>

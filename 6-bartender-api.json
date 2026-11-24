@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug, tier: body.tier } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -295,7 +295,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id) || !(c.tags || []).includes(cfg.MEMBER_TAG)) continue; // guests are not listed\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      id: c.id,\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n      mugStatus: cf[cfg.MUG_STATUS_FIELD] || '',\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nconst result = { period, updatedAt: new Date().toISOString(), members };\n$getWorkflowStaticData('global').members = { at: Date.now(), result };\nreturn [{ json: result }];"
+        "jsCode": "// Member list for the site: mug, name, and this month's perk status.\nconst cfg = $('Config').first().json;\nconst period = $now.toFormat('yyyy-MM');\nconst day = (v) => (v ? String(v).slice(0, 10) : '');\n// Tier letter from the contact's tags (P Pre Founder, F Founder, E Essentials, I Insider, V VIP); '' = no tier tag\nconst TIER_TAGS = { vip: 'V', insider: 'I', essentials: 'E', essential: 'E', founder: 'F', 'pre founder': 'P' };\nconst normTag = (t) => String(t).toLowerCase().replace(/[-_]+/g, ' ').replace(/\\s+/g, ' ').trim();\nconst tierOf = (tags) => { const have = new Set((tags || []).map(normTag)); const k = Object.keys(TIER_TAGS).find((t) => have.has(t)); return k ? TIER_TAGS[k] : ''; };\nconst seen = new Set();\nconst members = [];\nfor (const item of $input.all()) {\n  for (const c of item.json.contacts || []) {\n    if (seen.has(c.id) || !(c.tags || []).includes(cfg.MEMBER_TAG)) continue; // guests are not listed\n    seen.add(c.id);\n    const cf = {};\n    for (const f of c.customFields || []) cf[f.id] = f.value;\n    const mug = String(cf[cfg.MUG_FIELD] || '').trim();\n    if (!mug) continue;\n    members.push({\n      id: c.id,\n      mug,\n      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',\n      phone: c.phone || '',\n      email: c.email || '',\n      perks: cfg.PERKS.map(p => {\n        const used = cf[p.status] === 'Redeemed' && cf[p.period] === period;\n        return { key: p.key, label: p.label, used, date: used ? day(cf[p.date]) : '' };\n      }),\n      initialPour: day(cf[cfg.INITIAL_POUR_DATE]),\n      mugStatus: cf[cfg.MUG_STATUS_FIELD] || '',\n      tier: tierOf(c.tags),\n    });\n  }\n}\nmembers.sort((a, b) => a.mug.localeCompare(b.mug, undefined, { numeric: true }));\nconst result = { period, updatedAt: new Date().toISOString(), members };\n$getWorkflowStaticData('global').members = { at: Date.now(), result };\nreturn [{ json: result }];"
       },
       "id": "d7efb48f-346d-4dbc-a56e-5eb536cdca41",
       "name": "Shape Members",
@@ -759,7 +759,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $('Config').first().json;\n// Staff edit a member's name, email or phone from the counter site. The mug number is optional; the site checks it is not already taken.\nconst req = $('Check Request').first().json;\nif (!/^[A-Za-z0-9]{10,40}$/.test(req.contactId)) throw new Error('Bad contact id');\nconst name = String(req.name || '').replace(/\\s+/g, ' ').trim();\nif (!name || name.length > 120) throw new Error('A name is required');\nconst email = String(req.email || '').trim().toLowerCase();\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error('Bad email');\nlet phone = String(req.phone || '').trim();\nif (phone) {\n  const digits = phone.replace(/\\D/g, '');\n  if (digits.length < 7 || digits.length > 15) throw new Error('Bad phone');\n  phone = phone.startsWith('+') ? '+' + digits : digits.length === 10 ? '+1' + digits : digits.length === 11 && digits[0] === '1' ? '+' + digits : '+' + digits;\n}\nconst [firstName, ...rest] = name.split(' ');\nconst body = { firstName, lastName: rest.join(' ') };\nif (email) body.email = email;\nif (phone) body.phone = phone;\n// Mug number: digits, or a tier letter (P, F, E, I, V) and digits, padded to 5 (\"p10\" -> \"P00010\", \"3158\" -> \"03158\")\nlet mug = '';\nif (req.mug !== undefined && req.mug !== null && String(req.mug).trim() !== '') {\n  const m = String(req.mug).trim().toUpperCase().match(/^([PFEIV])?\\s*#?\\s*(\\d{1,8})$/);\n  if (!m) throw new Error('Bad mug number');\n  mug = (m[1] || '') + m[2].padStart(5, '0');\n  body.customFields = [{ id: cfg.MUG_FIELD, field_value: mug }];\n}\n$getWorkflowStaticData('global').members = null; // the next member list read sees the change\nreturn [{ json: { contactId: req.contactId, body, name, email, phone, mug } }];"
+        "jsCode": "const cfg = $('Config').first().json;\n// Staff edit a member's name, email or phone from the counter site. The mug number is optional; the site checks it is not already taken.\nconst req = $('Check Request').first().json;\nif (!/^[A-Za-z0-9]{10,40}$/.test(req.contactId)) throw new Error('Bad contact id');\nconst name = String(req.name || '').replace(/\\s+/g, ' ').trim();\nif (!name || name.length > 120) throw new Error('A name is required');\nconst email = String(req.email || '').trim().toLowerCase();\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error('Bad email');\nlet phone = String(req.phone || '').trim();\nif (phone) {\n  const digits = phone.replace(/\\D/g, '');\n  if (digits.length < 7 || digits.length > 15) throw new Error('Bad phone');\n  phone = phone.startsWith('+') ? '+' + digits : digits.length === 10 ? '+1' + digits : digits.length === 11 && digits[0] === '1' ? '+' + digits : '+' + digits;\n}\nconst [firstName, ...rest] = name.split(' ');\nconst body = { firstName, lastName: rest.join(' ') };\nif (email) body.email = email;\nif (phone) body.phone = phone;\n// Mug number: digits, or a tier letter (P, F, E, I, V) and digits, padded to 5 (\"p10\" -> \"P00010\", \"3158\" -> \"03158\")\nlet mug = '';\nif (req.mug !== undefined && req.mug !== null && String(req.mug).trim() !== '') {\n  const m = String(req.mug).trim().toUpperCase().match(/^([PFEIV])?\\s*#?\\s*(\\d{1,8})$/);\n  if (!m) throw new Error('Bad mug number');\n  mug = (m[1] || '') + m[2].padStart(5, '0');\n  body.customFields = [{ id: cfg.MUG_FIELD, field_value: mug }];\n}\n$getWorkflowStaticData('global').members = null; // the next member list read sees the change\n// Member type: a tier letter, '' for no tier, or not sent (leave the tags alone)\nlet tier;\nif (req.tier !== undefined && req.tier !== null) {\n  tier = String(req.tier).trim().toUpperCase();\n  if (tier && !/^[PFEIV]$/.test(tier)) throw new Error('Bad member type');\n}\nreturn [{ json: { contactId: req.contactId, body, name, email, phone, mug, tier } }];"
       },
       "id": "bb5fb6d7-e32f-4507-8213-2bf610fac264",
       "name": "Validate Member Update",
@@ -815,7 +815,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, name: $('Validate Member Update').first().json.name, email: $('Validate Member Update').first().json.email, phone: $('Validate Member Update').first().json.phone, mug: $('Validate Member Update').first().json.mug }) }}",
+        "responseBody": "={{ JSON.stringify({ ok: true, name: $('Validate Member Update').first().json.name, email: $('Validate Member Update').first().json.email, phone: $('Validate Member Update').first().json.phone, mug: $('Validate Member Update').first().json.mug, tier: $('Validate Member Update').first().json.tier }) }}",
         "options": {}
       },
       "id": "f4ceb8d5-5bcd-47e5-ae1a-de3e38166227",
@@ -823,9 +823,65 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
+        1792,
+        1500
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sets the member's tier tag: drops the other tier tags, then adds the chosen one. Nothing to change = one harmless read.\nconst v = $('Validate Member Update').first().json;\nconst TAGS = { P: 'pre founder', F: 'founder', E: 'essentials', I: 'insider', V: 'vip' };\nif (v.tier === undefined) return [{ json: { contactId: v.contactId, method: 'GET' } }];\nconst keep = v.tier ? TAGS[v.tier] : '';\nconst drop = Object.values(TAGS).filter((t) => t !== keep);\nconst calls = [{ json: { contactId: v.contactId, method: 'DELETE', tags: drop } }];\nif (keep) calls.push({ json: { contactId: v.contactId, method: 'POST', tags: [keep] } });\nreturn calls;"
+      },
+      "id": "3589542c-0c47-4d1d-9085-04a065d078c8",
+      "name": "Build Tier Calls",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
         1344,
         1500
       ]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contactId }}{{ $json.method === 'GET' ? '' : '/tags' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: $json.tags || [] }) }}",
+        "options": {}
+      },
+      "id": "871fadf8-363a-4951-be63-13869b492883",
+      "name": "Update Tier Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        1500
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
@@ -1110,6 +1166,28 @@
       ]
     },
     "Update Member": {
+      "main": [
+        [
+          {
+            "node": "Build Tier Calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Tier Calls": {
+      "main": [
+        [
+          {
+            "node": "Update Tier Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Tier Tags": {
       "main": [
         [
           {

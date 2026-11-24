@@ -44,6 +44,29 @@ export const mugRank = (s) => {
   const m = mugKey(s).match(/^([A-Z])?(\d+)$/);
   return m ? (m[1] ? Number(m[2]) - 1e9 : Number(m[2])) : 0;
 };
+// Membership tier from the mug number's letter ("P00010" -> Pre Founder); a plain number has no tier
+export const TIERS = [
+  { key: 'P', label: 'Pre Founder' },
+  { key: 'F', label: 'Founder' },
+  { key: 'E', label: 'Essentials' },
+  { key: 'I', label: 'Insider' },
+  { key: 'V', label: 'VIP' },
+];
+export const mugTier = (s) => {
+  const m = String(s ?? '').trim().toUpperCase().match(/^([A-Z])/);
+  return m ? m[1] : '';
+};
+// A member's tier: the tag-based one from the server when there is one, otherwise the letter of the mug number
+export const memberTier = (m) => (m && m.tier) || mugTier(m && m.mug);
+// Next free number for a tier letter, from the member list: ("P", members) -> "P00013"
+export const nextTierMug = (members, letter) => {
+  let max = 0;
+  for (const m of members || []) {
+    const x = String(m.mug || '').trim().toUpperCase().match(/^([A-Z])?\s*0*(\d+)$/);
+    if (x && (x[1] || '') === letter) max = Math.max(max, parseInt(x[2], 10));
+  }
+  return letter + String(max + 1).padStart(5, '0');
+};
 // What staff typed in a mug field, cleaned: "p 10" -> "P00010", "3158" -> "03158" ('' when it is not a mug number)
 export const cleanMug = (s) => {
   const m = String(s ?? '').trim().toUpperCase().match(/^([PFEIV])?\s*#?\s*(\d{1,8})$/);

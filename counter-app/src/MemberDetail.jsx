@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { withRetry, getLog, getReminders, AuthError, readCache, cacheKey, UNLIMITED_PERKS } from '../../bar-app/src/api.js';
 import { dateTime, eventInfo, isAlert, shortDay, todayYmd } from '../../bar-app/src/format.js';
-import { RANGES, rangeFrom, sameMug, cleanMug } from '../../bar-app/src/format.js';
+import { RANGES, rangeFrom, sameMug, cleanMug, memberTier, nextTierMug, TIERS } from '../../bar-app/src/format.js';
 import MugPipeline, { MugPill } from './MugPipeline.jsx';
 
 const PERK_TEXT = {
@@ -16,7 +16,7 @@ export default function MemberDetail({ pin, member, members = [], onAuthError, o
   const [reminders, setReminders] = useState(null);
   const [error, setError] = useState('');
   const dialog = useRef(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', mug: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', mug: '', tier: '' });
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -41,9 +41,16 @@ export default function MemberDetail({ pin, member, members = [], onAuthError, o
   }, [pin, member.mug, range, onAuthError]);
 
   const startEdit = () => {
-    setForm({ name: member.name || '', email: member.email || '', phone: member.phone || '', mug: member.mug || '' });
+    setForm({ name: member.name || '', email: member.email || '', phone: member.phone || '', mug: member.mug || '', tier: memberTier(member) });
     setEditError('');
     dialog.current.showModal();
+  };
+
+  // Choosing a member type fills in the mug number for it: the member's own number when going back to their current type,
+  // otherwise the next free number of that tier (P00013, F00001 ...). Staff can still edit the field afterwards.
+  const pickTier = (tier) => {
+    const mug = tier === memberTier(member) ? member.mug : nextTierMug(members, tier);
+    setForm((f) => ({ ...f, tier, mug }));
   };
 
   const save = async (e) => {
@@ -58,7 +65,8 @@ export default function MemberDetail({ pin, member, members = [], onAuthError, o
     setSaving(true);
     setEditError('');
     try {
-      await onSaveMember(member, { name: form.name.trim(), email, phone: form.phone.trim(), mug });
+      // the tier is sent only when it changed, so the tags of an untouched member are left alone
+      await onSaveMember(member, { name: form.name.trim(), email, phone: form.phone.trim(), mug, tier: form.tier !== memberTier(member) ? form.tier : undefined });
       dialog.current.close();
     } catch {
       setEditError("Couldn't save the changes. Please try again.");
@@ -101,6 +109,12 @@ export default function MemberDetail({ pin, member, members = [], onAuthError, o
       <dialog ref={dialog} className="member-dialog">
         <form className="member-edit" onSubmit={save}>
           <h2>Edit member <span className="label">#{member.mug}</span></h2>
+          <label>Member type
+            <select value={form.tier} disabled={saving} onChange={(e) => pickTier(e.target.value)}>
+              <option value="">No tier (regular member)</option>
+              {TIERS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </label>
           <label>Mug number
             <input type="text" value={form.mug} disabled={saving} onChange={(e) => setForm({ ...form, mug: e.target.value })} />
           </label>

@@ -135,9 +135,11 @@ export async function setMugStatus(pin, member, status) {
 }
 
 // Saves a member's name, email and phone in GHL, then patches the cached member list. Returns what the server stored.
-export async function updateMember(pin, member, { name, email, phone, mug }) {
-  const saved = await call('member-update', pin, { contactId: member.id, name, email, phone, mug });
+// tier: a letter (P, F, E, I, V) sets the member's tier tag, '' removes the tier tags, undefined leaves them alone
+export async function updateMember(pin, member, { name, email, phone, mug, tier }) {
+  const saved = await call('member-update', pin, { contactId: member.id, name, email, phone, mug, tier });
   const changes = { name: saved.name ?? name, email: saved.email ?? email, phone: saved.phone ?? phone, mug: saved.mug || mug || member.mug };
+  if (tier !== undefined) changes.tier = tier;
   const key = cacheKey.members();
   const cached = readCache(key);
   if (cached?.data?.members) {
@@ -188,9 +190,9 @@ async function demo(action, pin, extra) {
     return { ok: true, status };
   }
   if (action === 'member-update') {
-    const { name, email, phone, mug } = extra;
-    demoEdits[contactId] = { name, email, phone, ...(mug ? { mug } : {}) };
-    return { ok: true, name, email, phone, mug };
+    const { name, email, phone, mug, tier } = extra;
+    demoEdits[contactId] = { name, email, phone, ...(mug ? { mug } : {}), ...(tier !== undefined ? { tier } : {}) };
+    return { ok: true, name, email, phone, mug, tier };
   }
   if (action === 'members') {
     return {
