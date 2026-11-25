@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getCampaign, sendCampaignBatch, AuthError } from '../../bar-app/src/api.js';
+import { getCampaign, sendCampaignBatch, sendCampaignTest, newCampaignBatch, AuthError } from '../../bar-app/src/api.js';
 import { dateTime } from '../../bar-app/src/format.js';
 
 const TEXT_LABELS = ['Text 1', 'Text 2', 'Text 3'];
@@ -16,6 +16,8 @@ export default function Campaign({ pin, onAuthError }) {
   const [confirming, setConfirming] = useState(0); // the batch waiting for "Yes, start"
   const [starting, setStarting] = useState(0);
   const [notice, setNotice] = useState('');
+  const [testing, setTesting] = useState(false); // false | 'confirm' | 'sending'
+  const [fresh, setFresh] = useState(null); // new batch panel: null (closed) | { available, size, busy }
   const live = useRef(true);
 
   const load = useCallback(async () => {
@@ -67,6 +69,51 @@ export default function Campaign({ pin, onAuthError }) {
     }
   };
 
+  const runTest = async () => {
+    setTesting('sending');
+    setError('');
+    setNotice('');
+    try {
+      const res = await sendCampaignTest(pin);
+      setNotice(`Test started for ${(res.tested || []).join(', ') || 'the test contact'}. Text 1 goes out now; the next texts follow the workflow's schedule.`);
+    } catch (err) {
+      if (err instanceof AuthError) return onAuthError();
+      setError("Could not start the test. Please try again.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const checkFresh = async () => {
+    setFresh({ busy: true });
+    setError('');
+    setNotice('');
+    try {
+      const res = await newCampaignBatch(pin, { preview: true });
+      const max = res.max || 490;
+      setFresh({ available: res.available, max, size: Math.min(res.available, 480) });
+    } catch (err) {
+      if (err instanceof AuthError) return onAuthError();
+      setError("Could not check for new contacts. Please try again.");
+      setFresh(null);
+    }
+  };
+
+  const createFresh = async () => {
+    const size = Math.max(1, Math.min(fresh.size, fresh.available, fresh.max));
+    setFresh({ ...fresh, busy: true });
+    try {
+      const res = await newCampaignBatch(pin, { size });
+      setNotice(res.created ? `Batch ${res.batch} created with ${res.count} members. Tagging takes a minute or two; press Refresh to see the final count.` : 'No contacts were available for a new batch.');
+      setFresh(null);
+      await load();
+    } catch (err) {
+      if (err instanceof AuthError) return onAuthError();
+      setError(err && err.message && !/^Server error|Unexpected/.test(err.message) ? err.message : "Could not create the batch. Please try again.");
+      setFresh(null);
+    }
+  };
+
   const batches = data ? data.batches : [];
   const totals = batches.reduce((a, b) => ({ people: a.people + b.total, started: a.started + (b.started ? 1 : 0), t1: a.t1 + (b.texts[0] || 0) }), { people: 0, started: 0, t1: 0 });
   const startedToday = batches.find((b) => b.started && b.startedDate === (data && data.today));
@@ -92,6 +139,47 @@ export default function Campaign({ pin, onAuthError }) {
             <div className="mini"><strong>{totals.started} of {batches.length}</strong><span className="label">Batches started</span></div>
           </div>
           {startedToday && <p className="muted">Batch {startedToday.batch} was started today, so the next batch can start tomorrow.</p>}
+
+          <div className="tools">
+            <div className="tool">
+              <h3>Send a test</h3>
+              <p className="label">Starts the same texts for the test contact only (Test User), before you start a real batch.</p>
+              {testing === 'confirm' ? (
+                <div className="row">
+                  <button className="secondary" onClick={() => setTesting(false)}>Cancel</button>
+                  <button onClick={runTest}>Yes, text the test contact</button>
+                </div>
+              ) : (
+                <button className="secondary" onClick={() => { setTesting('confirm'); setError(''); setNotice(''); }} disabled={testing === 'sending'}>
+                  {testing === 'sending' ? <>Sending…<span className="spinner" /></> : 'Send test text'}
+                </button>
+              )}
+            </div>
+            <div className="tool">
+              <h3>New batch</h3>
+              <p className="label">Makes a batch from members who are not in a batch yet, for example new signups.</p>
+              {!fresh && <button className="secondary" onClick={checkFresh}>Check for new contacts</button>}
+              {fresh && fresh.busy && fresh.available === undefined && <p className="muted">Checking…<span className="spinner" /></p>}
+              {fresh && fresh.available === 0 && (
+                <div>
+                  <p className="muted">Everyone who can be texted is already in a batch.</p>
+                  <button className="secondary" onClick={() => setFresh(null)}>Close</button>
+                </div>
+              )}
+              {fresh && fresh.available > 0 && (
+                <div className="confirm">
+                  <p>{fresh.available.toLocaleString('en-US')} members are not in a batch yet.</p>
+                  <label className="label">Members in the new batch (up to {Math.min(fresh.available, fresh.max)})
+                    <input type="number" min="1" max={Math.min(fresh.available, fresh.max)} value={fresh.size} onChange={(e) => setFresh({ ...fresh, size: Number(e.target.value) })} disabled={fresh.busy} />
+                  </label>
+                  <div className="row">
+                    <button className="secondary" onClick={() => setFresh(null)} disabled={fresh.busy}>Cancel</button>
+                    <button onClick={createFresh} disabled={fresh.busy || !(fresh.size >= 1)}>{fresh.busy ? <>Creating…<span className="spinner" /></> : 'Create batch'}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="batch-grid">
             {batches.map((b) => {

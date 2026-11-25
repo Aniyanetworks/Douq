@@ -156,6 +156,10 @@ export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
 // Founders text campaign (workflow 12): the batches with their progress, and starting one batch
 export const getCampaign = (pin) => call('campaign-status', pin);
 export const sendCampaignBatch = (pin, batch) => call('campaign-send', pin, { batch });
+// Texts only the test contact(s), so the real texts can be checked before a batch is started
+export const sendCampaignTest = (pin) => call('campaign-test', pin);
+// New batch from contacts that are not in a batch yet: preview = just count them; otherwise create it with `size` contacts
+export const newCampaignBatch = (pin, { size = 0, preview = false } = {}) => call('campaign-newbatch', pin, { size, preview });
 
 // ---------- demo data ----------
 const demoCampaign = { today: '2026-11-25', batches: [1, 2, 3, 4, 5, 6].map((n) => ({ batch: n, total: n === 6 ? 475 : 480, texts: n === 1 ? [480, 470, 0] : [0, 0, 0], started: false, startedAt: '', startedDate: '', queued: 0, finishedAt: '', sending: false })) };
@@ -212,6 +216,13 @@ async function demo(action, pin, extra) {
     };
   }
   if (action === 'campaign-status') return { status: true, ...demoCampaign, updatedAt: new Date().toISOString() };
+  if (action === 'campaign-test') return { ok: true, tested: ['Test User'] };
+  if (action === 'campaign-newbatch') {
+    if (extra.preview) return { ok: true, preview: true, available: 37, max: 490 };
+    const n = demoCampaign.batches.length + 1;
+    demoCampaign.batches.push({ batch: n, total: Number(extra.size), texts: [0, 0, 0], started: false, startedAt: '', startedDate: '', queued: 0, finishedAt: '', sending: false });
+    return { ok: true, created: true, batch: n, count: Number(extra.size) };
+  }
   if (action === 'campaign-send') {
     const b = demoCampaign.batches.find((x) => x.batch === Number(extra.batch));
     if (!b || b.started) throw new Error('Batch already started');

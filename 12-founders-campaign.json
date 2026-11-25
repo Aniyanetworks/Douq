@@ -8,7 +8,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "c764b89a-269d-4788-a2c1-de1e795e24a2",
+      "id": "0e947d70-d3dd-4780-995a-9b3f14bb8325",
       "name": "Campaign Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -16,13 +16,13 @@
         0,
         300
       ],
-      "webhookId": "1c4252b1-7430-4669-90dc-799cf54e3021"
+      "webhookId": "c6ca1937-c7ab-4cc5-a3ca-5db29b752271"
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// CONFIG - Founders text campaign in batches (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  SECRET: 'VTNLn3qmT0Sw2dcuICHPBtNdeBqA2BzQCKUaUpmN',            // the bar site API (workflow 6) calls this workflow with it; keep both the same\n  BATCHES: 6,                      // contacts are tagged founders-batch-1 ... founders-batch-6\n  BATCH_TAG: 'founders-batch-',\n  SEND_TAG: 'founders-send',       // the GHL workflow \"Founders Essential Text Blast\" starts when this tag is added\n  TEXT_TAGS: ['founders-text-1-sent', 'founders-text-2-sent', 'founders-text-3-sent'], // added by that workflow after each text\n  TIMEZONE: 'America/Denver',      // \"today\" for the one-batch-a-day rule (SMS limit is 500 a day)\n}}];"
+        "jsCode": "// ============================================================\n// CONFIG - Founders text campaign in batches (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  SECRET: 'VTNLn3qmT0Sw2dcuICHPBtNdeBqA2BzQCKUaUpmN',            // the bar site API (workflow 6) calls this workflow with it; keep both the same\n  BATCHES: 6,                      // batches that exist from the start; \"New batch\" adds more (founders-batch-7 ...)\n  MAX_BATCH_SIZE: 490,             // a new batch stays under the 500 texts a day limit\n  BATCH_TAG: 'founders-batch-',\n  SEND_TAG: 'founders-send',       // the GHL workflow \"Founders Essential Text Blast\" starts when this tag is added\n  TEXT_TAGS: ['founders-text-1-sent', 'founders-text-2-sent', 'founders-text-3-sent'], // added by that workflow after each text\n  ENROLLEE_TAGS: ['2026-07-24 - founding member + one - enrollee', '2026-07-24 - founding member - enrollee'], // never texted by this campaign\n  TEST_CONTACTS: [{ id: 'qNo3fRDEi6v82RUJqEfq', label: 'Test User' }], // \"Send test\" texts only these contacts\n  TIMEZONE: 'America/Denver',      // \"today\" for the one-batch-a-day rule (SMS limit is 500 a day)\n}}];"
       },
-      "id": "bf8032f1-7e94-4787-96c3-a86cc38022f1",
+      "id": "867daedc-3f4b-41e8-ae7a-4aa7e9e9c9a0",
       "name": "Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -33,9 +33,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the secret and the request. A batch can be started once, and only one batch a day (the daily SMS limit).\nconst cfg = $('Config').first().json;\nconst body = $('Campaign Webhook').first().json.body || {};\nconst fail = (msg) => [{ json: { ok: false, error: msg } }];\nif (!cfg.SECRET || body.secret !== cfg.SECRET) return fail('Not allowed');\nconst action = body.action === 'campaign-send' ? 'send' : 'status';\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nconst today = new Date().toLocaleDateString('en-CA', { timeZone: cfg.TIMEZONE });\nif (action === 'send') {\n  const batch = parseInt(body.batch, 10);\n  if (!(batch >= 1 && batch <= cfg.BATCHES)) return fail('Unknown batch');\n  const b = state.campaign.batches;\n  if (b[batch]) return fail('Batch ' + batch + ' was already started');\n  const other = Object.keys(b).find((k) => b[k].startedDate === today);\n  if (other) return fail('Batch ' + other + ' was already started today. Send one batch a day to stay under the SMS limit.');\n  b[batch] = { startedAt: new Date().toISOString(), startedDate: today };\n  return [{ json: { ok: true, action, batch } }];\n}\nreturn [{ json: { ok: true, action, batch: 0 } }];"
+        "jsCode": "// Checks the secret and the request. A batch can be started once, and only one batch a day (the daily SMS limit).\nconst cfg = $('Config').first().json;\nconst body = $('Campaign Webhook').first().json.body || {};\nconst fail = (msg) => [{ json: { ok: false, error: msg } }];\nif (!cfg.SECRET || body.secret !== cfg.SECRET) return fail('Not allowed');\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nconst maxBatch = state.campaign.maxBatch || cfg.BATCHES;\nconst today = new Date().toLocaleDateString('en-CA', { timeZone: cfg.TIMEZONE });\nif (body.action === 'campaign-test') return [{ json: { ok: true, action: 'test', batch: 0 } }];\nif (body.action === 'campaign-newbatch') {\n  const preview = body.preview === true;\n  const size = parseInt(body.size, 10);\n  if (!preview && !(size >= 1 && size <= cfg.MAX_BATCH_SIZE)) return fail('Choose a size from 1 to ' + cfg.MAX_BATCH_SIZE);\n  return [{ json: { ok: true, action: 'newbatch', batch: 0, preview, size: preview ? 0 : size } }];\n}\nconst action = body.action === 'campaign-send' ? 'send' : 'status';\nif (action === 'send') {\n  const batch = parseInt(body.batch, 10);\n  if (!(batch >= 1 && batch <= maxBatch)) return fail('Unknown batch');\n  const b = state.campaign.batches;\n  if (b[batch]) return fail('Batch ' + batch + ' was already started');\n  const other = Object.keys(b).find((k) => b[k].startedDate === today);\n  if (other) return fail('Batch ' + other + ' was already started today. Send one batch a day to stay under the SMS limit.');\n  b[batch] = { startedAt: new Date().toISOString(), startedDate: today };\n  return [{ json: { ok: true, action, batch } }];\n}\nreturn [{ json: { ok: true, action, batch: 0 } }];"
       },
-      "id": "f7b1d055-0707-4b35-929d-428289c007e9",
+      "id": "832300cf-53ad-41b0-a7f3-09f1da9c2cfb",
       "name": "Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -55,7 +55,7 @@
           },
           "conditions": [
             {
-              "id": "9cb8a9d1-68f4-4e41-8d67-12a0f1912c87",
+              "id": "4ca3f1e0-4847-4436-aa44-eb10b23e20cc",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -69,7 +69,7 @@
         },
         "options": {}
       },
-      "id": "d1d9a8fd-8d45-4a0b-9ed2-cdfca0f33fd4",
+      "id": "0fce6c08-0c6e-4a32-ab9c-d7d1e325d85d",
       "name": "Allowed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -84,7 +84,7 @@
         "responseBody": "={{ JSON.stringify({ error: $('Check').first().json.error }) }}",
         "options": {}
       },
-      "id": "e9e5b82f-3e9a-4d4a-9c1a-b1f33aa2b674",
+      "id": "df13d521-9eb0-4bc6-a3c5-09b32df5bd3c",
       "name": "Refused",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -104,7 +104,169 @@
           },
           "conditions": [
             {
-              "id": "28b9d33d-ffde-4023-87b1-1f82c7ab1d80",
+              "id": "d9def9b9-d391-4cd8-8bf7-237ca1362d7d",
+              "leftValue": "={{ $json.action === 'test' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "45ab3e15-f852-4a9b-85bf-c1e87a854ce0",
+      "name": "Test?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nreturn cfg.TEST_CONTACTS.map((t) => ({ json: { id: t.id, label: t.label } }));"
+      },
+      "id": "ced85f95-b8fb-4194-ab88-8332be56563b",
+      "name": "Test Contacts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.SEND_TAG] }) }}"
+      },
+      "id": "91a4ce4f-37f6-4452-93f8-9b7970cd0972",
+      "name": "Untag Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        560
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "45e84208-c57f-42a9-9377-0dfd5209f5e0",
+      "name": "Wait 3s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        560
+      ],
+      "webhookId": "61b1942c-dbf5-4637-9365-8cd09088fa6d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Test Contacts').item.json.id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.SEND_TAG] }) }}"
+      },
+      "id": "dd5bd2c2-94f0-4127-ab93-b8be73e0bff8",
+      "name": "Tag Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        560
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, tested: $('Test Contacts').all().map((x) => x.json.label) }) }}",
+        "options": {}
+      },
+      "id": "10053d6c-6477-4399-8b30-a5d4262c82ab",
+      "name": "Test Reply",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        560
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1ccd72a4-70aa-411c-ba70-224fe1cb56b4",
               "leftValue": "={{ $json.action === 'send' }}",
               "rightValue": "",
               "operator": {
@@ -118,12 +280,12 @@
         },
         "options": {}
       },
-      "id": "61942aab-c76d-4740-b272-76ec44850a8f",
+      "id": "92dcf055-bdf7-4c8b-b595-edbc1f6dc258",
       "name": "Send?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        880,
+        1100,
         200
       ]
     },
@@ -133,25 +295,25 @@
         "responseBody": "={{ JSON.stringify({ ok: true, queued: true, batch: $('Check').first().json.batch }) }}",
         "options": {}
       },
-      "id": "c8cc24d8-860b-4ad6-b63b-7d6814c57936",
+      "id": "c436e7a5-0eca-48a6-9a3e-293fecdc603f",
       "name": "Queued",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1100,
+        1320,
         100
       ]
     },
     {
       "parameters": {
-        "jsCode": "// One search page per 100 contacts: the batch being started, or all batches for the status view.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst batches = c.action === 'send' ? [c.batch] : Array.from({ length: cfg.BATCHES }, (_, i) => i + 1);\nconst items = [];\nfor (const batch of batches) for (let page = 1; page <= 6; page++) items.push({ json: { batch, page } });\nreturn items;"
+        "jsCode": "// One search page per 100 contacts: the batch being started, all batches for the status view, or every contact for a new batch.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst state = $getWorkflowStaticData('global');\nconst maxBatch = (state.campaign && state.campaign.maxBatch) || cfg.BATCHES;\nconst items = [];\nif (c.action === 'newbatch') {\n  for (let page = 1; page <= 60; page++) items.push({ json: { batch: 0, page } });\n  return items;\n}\nconst batches = c.action === 'send' ? [c.batch] : Array.from({ length: maxBatch }, (_, i) => i + 1);\nfor (const batch of batches) for (let page = 1; page <= 6; page++) items.push({ json: { batch, page } });\nreturn items;"
       },
-      "id": "5b3137cb-1280-4bfa-ad54-d29e4d084def",
+      "id": "6297965f-e5b0-4240-8476-472d5e650570",
       "name": "Pages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1320,
+        1540,
         200
       ]
     },
@@ -174,9 +336,6 @@
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: 100, filters: [{ field: 'tags', operator: 'contains', value: [$('Config').first().json.BATCH_TAG + $json.batch] }] }) }}",
         "options": {
           "batching": {
             "batch": {
@@ -184,14 +343,17 @@
               "batchInterval": 1000
             }
           }
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: 100, filters: $json.batch ? [{ field: 'tags', operator: 'contains', value: [$('Config').first().json.BATCH_TAG + $json.batch] }] : [] }) }}"
       },
-      "id": "fe475d9c-a415-4c49-821a-6cc0fe059891",
+      "id": "cdf8dd7a-a482-44b7-89f8-31e21c81d7e2",
       "name": "Fetch",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1540,
+        1760,
         200
       ],
       "credentials": {
@@ -206,15 +368,49 @@
     },
     {
       "parameters": {
-        "jsCode": "// Sends: the contacts of the batch to tag. Status: counts per batch.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst pages = $('Pages').all();\nconst by = {};\n$input.all().forEach((it, i) => {\n  const b = pages[i] && pages[i].json.batch;\n  for (const x of (it.json.contacts || [])) { (by[b] = by[b] || new Map()).set(x.id, x); }\n});\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nif (c.action === 'send') {\n  const list = [...(by[c.batch] || new Map()).values()];\n  state.campaign.batches[c.batch].queued = list.length;\n  return list.map((x) => ({ json: { id: x.id, status: false } }));\n}\nconst has = (x, t) => (x.tags || []).some((g) => String(g).toLowerCase() === t);\nconst batches = [];\nfor (let b = 1; b <= cfg.BATCHES; b++) {\n  const list = [...(by[b] || new Map()).values()];\n  const st = state.campaign.batches[b] || null;\n  batches.push({\n    batch: b,\n    total: list.length,\n    texts: cfg.TEXT_TAGS.map((t) => list.filter((x) => has(x, t)).length),\n    started: !!st,\n    startedAt: st ? st.startedAt : '',\n    startedDate: st ? st.startedDate : '',\n    queued: st && st.queued != null ? st.queued : 0,\n    finishedAt: st && st.finishedAt ? st.finishedAt : '',\n    sending: !!(st && !st.finishedAt),\n  });\n}\nreturn [{ json: { status: true, batches, today: new Date().toLocaleDateString('en-CA', { timeZone: cfg.TIMEZONE }), updatedAt: new Date().toISOString() } }];"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e723d2a4-750a-4cf0-9ec6-f29685d389ed",
+              "leftValue": "={{ $('Check').first().json.action === 'newbatch' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
-      "id": "9c1431f3-0cc3-4d07-87cf-44e3bf284d22",
+      "id": "9ac76b81-0025-480c-ad39-42a9f592da3e",
+      "name": "New batch?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sends: the contacts of the batch to tag. Status: counts per batch.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst pages = $('Pages').all();\nconst by = {};\n$input.all().forEach((it, i) => {\n  const b = pages[i] && pages[i].json.batch;\n  for (const x of (it.json.contacts || [])) { (by[b] = by[b] || new Map()).set(x.id, x); }\n});\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nconst maxBatch = state.campaign.maxBatch || cfg.BATCHES;\nif (c.action === 'send') {\n  const list = [...(by[c.batch] || new Map()).values()];\n  state.campaign.batches[c.batch].queued = list.length;\n  return list.map((x) => ({ json: { id: x.id, status: false } }));\n}\nconst has = (x, t) => (x.tags || []).some((g) => String(g).toLowerCase() === t);\nconst batches = [];\nfor (let b = 1; b <= maxBatch; b++) {\n  const list = [...(by[b] || new Map()).values()];\n  const st = state.campaign.batches[b] || null;\n  batches.push({\n    batch: b,\n    total: list.length,\n    texts: cfg.TEXT_TAGS.map((t) => list.filter((x) => has(x, t)).length),\n    started: !!st,\n    startedAt: st ? st.startedAt : '',\n    startedDate: st ? st.startedDate : '',\n    queued: st && st.queued != null ? st.queued : 0,\n    finishedAt: st && st.finishedAt ? st.finishedAt : '',\n    sending: !!(st && !st.finishedAt),\n  });\n}\nreturn [{ json: { status: true, batches, today: new Date().toLocaleDateString('en-CA', { timeZone: cfg.TIMEZONE }), updatedAt: new Date().toISOString() } }];"
+      },
+      "id": "f01a84f6-f43c-49fc-8cfa-cfa5bbf56901",
       "name": "Aggregate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1760,
-        200
+        2200,
+        120
       ]
     },
     {
@@ -228,7 +424,7 @@
           },
           "conditions": [
             {
-              "id": "ecfcd013-8093-4c70-a948-035a1ed25777",
+              "id": "aae110b3-e238-4c43-a391-6cf4646daaea",
               "leftValue": "={{ $json.status }}",
               "rightValue": "",
               "operator": {
@@ -242,13 +438,13 @@
         },
         "options": {}
       },
-      "id": "d3bfbb88-149b-4a6c-a399-b4f69e8e2f23",
+      "id": "112cef66-3319-484f-8e1c-918d4efbd53d",
       "name": "Status?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1980,
-        200
+        2420,
+        120
       ]
     },
     {
@@ -256,13 +452,13 @@
         "respondWith": "firstIncomingItem",
         "options": {}
       },
-      "id": "b4bbde7f-920e-4375-9cbd-bd6634328073",
+      "id": "8023ad3b-d099-4f5f-a4d2-9f40cfb3f46f",
       "name": "Status Answer",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2200,
-        100
+        2640,
+        20
       ]
     },
     {
@@ -284,9 +480,6 @@
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.SEND_TAG] }) }}",
         "options": {
           "batching": {
             "batch": {
@@ -294,15 +487,18 @@
               "batchInterval": 1000
             }
           }
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.SEND_TAG] }) }}"
       },
-      "id": "5a34d668-825a-4bc0-ad4d-b6b986123102",
+      "id": "397da67b-5085-46e8-8422-1b3f50f7906b",
       "name": "Tag Send",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2200,
-        320
+        2640,
+        220
       ],
       "credentials": {
         "httpBearerAuth": {
@@ -318,14 +514,142 @@
       "parameters": {
         "jsCode": "// All contacts of the batch are tagged: the GHL workflow now sends the texts.\nconst c = $('Check').first().json;\nconst state = $getWorkflowStaticData('global');\nif (state.campaign && state.campaign.batches[c.batch]) state.campaign.batches[c.batch].finishedAt = new Date().toISOString();\nreturn [{ json: { ok: true, batch: c.batch } }];"
       },
-      "id": "10d1c71f-898b-40c1-a0d8-8e29a1db0cf6",
+      "id": "7c1fc9c7-44b5-417e-83e4-f98a2e8d552a",
       "name": "Finish",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2420,
-        320
+        2860,
+        220
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// New batch: contacts that could be texted (phone, SMS DND not set, not an earlier-campaign enrollee) and are not in a batch yet.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst seen = new Map();\nfor (const it of $input.all()) for (const x of (it.json.contacts || [])) seen.set(x.id, x);\nconst tags = (x) => (x.tags || []).map((t) => String(t).toLowerCase().trim());\nconst free = [...seen.values()].filter((x) => {\n  if (!String(x.phone || '').trim()) return false;\n  if (x.dnd === true) return false;\n  const sms = x.dndSettings && x.dndSettings.SMS;\n  if (sms && sms.status && sms.status !== 'inactive') return false;\n  const t = tags(x);\n  if (cfg.ENROLLEE_TAGS.some((e) => t.includes(e.toLowerCase()))) return false;\n  if (t.some((g) => g.startsWith(cfg.BATCH_TAG))) return false;\n  return true;\n});\nfree.sort((a, b) => (String(a.dateAdded || '') + a.id).localeCompare(String(b.dateAdded || '') + b.id));\nif (c.preview) return [{ json: { preview: true, available: free.length, max: cfg.MAX_BATCH_SIZE } }];\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nconst batch = (state.campaign.maxBatch || cfg.BATCHES) + 1;\nconst list = free.slice(0, Math.min(c.size, cfg.MAX_BATCH_SIZE));\nif (!list.length) return [{ json: { preview: true, available: 0, max: cfg.MAX_BATCH_SIZE } }];\nstate.campaign.maxBatch = batch;\nreturn list.map((x) => ({ json: { id: x.id, tag: cfg.BATCH_TAG + batch, batch, count: list.length, preview: false } }));"
+      },
+      "id": "d3fdc58c-930f-45d1-9373-ec54e9ca15b2",
+      "name": "Pick New",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "887604d7-2cf0-469d-ba11-210daf79b803",
+              "leftValue": "={{ $json.preview }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2dd75b9f-4081-4ae2-93cc-65bcae0f0260",
+      "name": "Preview?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2420,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, preview: true, available: $json.available, max: $json.max }) }}",
+        "options": {}
+      },
+      "id": "4fe54fb6-584b-44bb-9cc0-e45e92a16876",
+      "name": "Preview Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        320
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, created: true, batch: $json.batch, count: $json.count }) }}",
+        "options": {}
+      },
+      "id": "21c499e7-179b-4060-9e83-5d8c59f293c6",
+      "name": "Created Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        460
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$json.tag] }) }}"
+      },
+      "id": "7cc54a4e-109c-478f-948a-0c564a4e22fd",
+      "name": "Tag New",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        460
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
     }
   ],
   "connections": {
@@ -388,7 +712,7 @@
       "main": [
         [
           {
-            "node": "Aggregate",
+            "node": "New batch?",
             "type": "main",
             "index": 0
           }
@@ -417,11 +741,66 @@
         ]
       ]
     },
+    "Test Contacts": {
+      "main": [
+        [
+          {
+            "node": "Untag Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Untag Test": {
+      "main": [
+        [
+          {
+            "node": "Wait 3s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3s": {
+      "main": [
+        [
+          {
+            "node": "Tag Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Test": {
+      "main": [
+        [
+          {
+            "node": "Test Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick New": {
+      "main": [
+        [
+          {
+            "node": "Preview?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Allowed?": {
       "main": [
         [
           {
-            "node": "Send?",
+            "node": "Test?",
             "type": "main",
             "index": 0
           }
@@ -429,6 +808,24 @@
         [
           {
             "node": "Refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test?": {
+      "main": [
+        [
+          {
+            "node": "Test Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send?",
             "type": "main",
             "index": 0
           }
@@ -453,6 +850,24 @@
         ]
       ]
     },
+    "New batch?": {
+      "main": [
+        [
+          {
+            "node": "Pick New",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Status?": {
       "main": [
         [
@@ -465,6 +880,29 @@
         [
           {
             "node": "Tag Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview?": {
+      "main": [
+        [
+          {
+            "node": "Preview Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Created Answer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tag New",
             "type": "main",
             "index": 0
           }
