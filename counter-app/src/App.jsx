@@ -9,12 +9,14 @@ import Report from './Report.jsx';
 import Settings from './Settings.jsx';
 import Intake from './Intake.jsx';
 import Reminders from './Reminders.jsx';
+import Campaign from './Campaign.jsx';
 
 const TABS = [
   { key: 'counter', label: 'Member counter' },
   { key: 'activity', label: 'Activity' },
   { key: 'report', label: 'Report' },
   { key: 'reminders', label: 'Reminders' },
+  { key: 'campaign', label: 'Campaign' },
   { key: 'settings', label: 'Settings' },
 ];
 
@@ -174,6 +176,7 @@ function Dashboard({ pin, onLock, onPinChange }) {
         {tab === 'report' && <Report pin={pin} onAuthError={onLock} />}
         {tab === 'settings' && <Settings pin={pin} onAuthError={onLock} onPinChanged={onPinChange} onSaved={(sv) => setSignupUrl((sv.urls && sv.urls.signupFormUrl) || '')} />}
         {tab === 'reminders' && <Reminders pin={pin} onAuthError={onLock} onOpenMember={openMember} />}
+        {tab === 'campaign' && <Campaign pin={pin} onAuthError={onLock} />}
 
         <Intake open={intakeOpen} url={signupUrl} onClose={() => setIntakeOpen(false)} onOpenSettings={() => { setIntakeOpen(false); setTab('settings'); }} />
 

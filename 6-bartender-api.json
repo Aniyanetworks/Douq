@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug, tier: body.tier } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings | campaign.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\n// Founders text campaign (workflow 12): batch status and start\nif (body.action === 'campaign-status' || body.action === 'campaign-send') return [{ json: { route: 'campaign', action: body.action, batch: body.batch } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug, tier: body.tier } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -217,6 +217,30 @@
               },
               "renameOutput": true,
               "outputKey": "member-update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b44c31b2-5201-496d-a428-d21b903dfb92",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "campaign",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "campaign"
             }
           ]
         },
@@ -882,6 +906,40 @@
       "retryOnFail": true,
       "maxTries": 4,
       "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv1300653.hstgr.cloud/webhook/founders-campaign",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ secret: 'VTNLn3qmT0Sw2dcuICHPBtNdeBqA2BzQCKUaUpmN', action: $json.action, batch: $json.batch }) }}",
+        "options": {
+          "timeout": 110000
+        }
+      },
+      "id": "a518cc39-0fb9-4a51-9a8d-989a7166c51a",
+      "name": "Campaign Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "102f2f0b-77a0-4a9c-9a50-e1d31ffabe28",
+      "name": "Send Campaign",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        1300
+      ]
     }
   ],
   "connections": {
@@ -965,6 +1023,13 @@
         [
           {
             "node": "Validate Member Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Campaign Call",
             "type": "main",
             "index": 0
           }
@@ -1192,6 +1257,17 @@
         [
           {
             "node": "Member Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campaign Call": {
+      "main": [
+        [
+          {
+            "node": "Send Campaign",
             "type": "main",
             "index": 0
           }

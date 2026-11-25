@@ -1,0 +1,478 @@
+{
+  "name": "12.Craft Mountain – Founders Campaign",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "founders-campaign",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c764b89a-269d-4788-a2c1-de1e795e24a2",
+      "name": "Campaign Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "1c4252b1-7430-4669-90dc-799cf54e3021"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG - Founders text campaign in batches (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  SECRET: 'VTNLn3qmT0Sw2dcuICHPBtNdeBqA2BzQCKUaUpmN',            // the bar site API (workflow 6) calls this workflow with it; keep both the same\n  BATCHES: 6,                      // contacts are tagged founders-batch-1 ... founders-batch-6\n  BATCH_TAG: 'founders-batch-',\n  SEND_TAG: 'founders-send',       // the GHL workflow \"Founders Essential Text Blast\" starts when this tag is added\n  TEXT_TAGS: ['founders-text-1-sent', 'founders-text-2-sent', 'founders-text-3-sent'], // added by that workflow after each text\n  TIMEZONE: 'America/Denver',      // \"today\" for the one-batch-a-day rule (SMS limit is 500 a day)\n}}];"
+      },
+      "id": "bf8032f1-7e94-4787-96c3-a86cc38022f1",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Checks the secret and the request. A batch can be started once, and only one batch a day (the daily SMS limit).\nconst cfg = $('Config').first().json;\nconst body = $('Campaign Webhook').first().json.body || {};\nconst fail = (msg) => [{ json: { ok: false, error: msg } }];\nif (!cfg.SECRET || body.secret !== cfg.SECRET) return fail('Not allowed');\nconst action = body.action === 'campaign-send' ? 'send' : 'status';\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nconst today = new Date().toLocaleDateString('en-CA', { timeZone: cfg.TIMEZONE });\nif (action === 'send') {\n  const batch = parseInt(body.batch, 10);\n  if (!(batch >= 1 && batch <= cfg.BATCHES)) return fail('Unknown batch');\n  const b = state.campaign.batches;\n  if (b[batch]) return fail('Batch ' + batch + ' was already started');\n  const other = Object.keys(b).find((k) => b[k].startedDate === today);\n  if (other) return fail('Batch ' + other + ' was already started today. Send one batch a day to stay under the SMS limit.');\n  b[batch] = { startedAt: new Date().toISOString(), startedDate: today };\n  return [{ json: { ok: true, action, batch } }];\n}\nreturn [{ json: { ok: true, action, batch: 0 } }];"
+      },
+      "id": "f7b1d055-0707-4b35-929d-428289c007e9",
+      "name": "Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9cb8a9d1-68f4-4e41-8d67-12a0f1912c87",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1d9a8fd-8d45-4a0b-9ed2-cdfca0f33fd4",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: $('Check').first().json.error }) }}",
+        "options": {}
+      },
+      "id": "e9e5b82f-3e9a-4d4a-9c1a-b1f33aa2b674",
+      "name": "Refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "28b9d33d-ffde-4023-87b1-1f82c7ab1d80",
+              "leftValue": "={{ $json.action === 'send' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "61942aab-c76d-4740-b272-76ec44850a8f",
+      "name": "Send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, queued: true, batch: $('Check').first().json.batch }) }}",
+        "options": {}
+      },
+      "id": "c8cc24d8-860b-4ad6-b63b-7d6814c57936",
+      "name": "Queued",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One search page per 100 contacts: the batch being started, or all batches for the status view.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst batches = c.action === 'send' ? [c.batch] : Array.from({ length: cfg.BATCHES }, (_, i) => i + 1);\nconst items = [];\nfor (const batch of batches) for (let page = 1; page <= 6; page++) items.push({ json: { batch, page } });\nreturn items;"
+      },
+      "id": "5b3137cb-1280-4bfa-ad54-d29e4d084def",
+      "name": "Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, page: $json.page, pageLimit: 100, filters: [{ field: 'tags', operator: 'contains', value: [$('Config').first().json.BATCH_TAG + $json.batch] }] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "fe475d9c-a415-4c49-821a-6cc0fe059891",
+      "name": "Fetch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sends: the contacts of the batch to tag. Status: counts per batch.\nconst cfg = $('Config').first().json;\nconst c = $('Check').first().json;\nconst pages = $('Pages').all();\nconst by = {};\n$input.all().forEach((it, i) => {\n  const b = pages[i] && pages[i].json.batch;\n  for (const x of (it.json.contacts || [])) { (by[b] = by[b] || new Map()).set(x.id, x); }\n});\nconst state = $getWorkflowStaticData('global');\nstate.campaign = state.campaign || { batches: {} };\nif (c.action === 'send') {\n  const list = [...(by[c.batch] || new Map()).values()];\n  state.campaign.batches[c.batch].queued = list.length;\n  return list.map((x) => ({ json: { id: x.id, status: false } }));\n}\nconst has = (x, t) => (x.tags || []).some((g) => String(g).toLowerCase() === t);\nconst batches = [];\nfor (let b = 1; b <= cfg.BATCHES; b++) {\n  const list = [...(by[b] || new Map()).values()];\n  const st = state.campaign.batches[b] || null;\n  batches.push({\n    batch: b,\n    total: list.length,\n    texts: cfg.TEXT_TAGS.map((t) => list.filter((x) => has(x, t)).length),\n    started: !!st,\n    startedAt: st ? st.startedAt : '',\n    startedDate: st ? st.startedDate : '',\n    queued: st && st.queued != null ? st.queued : 0,\n    finishedAt: st && st.finishedAt ? st.finishedAt : '',\n    sending: !!(st && !st.finishedAt),\n  });\n}\nreturn [{ json: { status: true, batches, today: new Date().toLocaleDateString('en-CA', { timeZone: cfg.TIMEZONE }), updatedAt: new Date().toISOString() } }];"
+      },
+      "id": "9c1431f3-0cc3-4d07-87cf-44e3bf284d22",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ecfcd013-8093-4c70-a948-035a1ed25777",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d3bfbb88-149b-4a6c-a399-b4f69e8e2f23",
+      "name": "Status?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "b4bbde7f-920e-4375-9cbd-bd6634328073",
+      "name": "Status Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.SEND_TAG] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "5a34d668-825a-4bc0-ad4d-b6b986123102",
+      "name": "Tag Send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        320
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "jsCode": "// All contacts of the batch are tagged: the GHL workflow now sends the texts.\nconst c = $('Check').first().json;\nconst state = $getWorkflowStaticData('global');\nif (state.campaign && state.campaign.batches[c.batch]) state.campaign.batches[c.batch].finishedAt = new Date().toISOString();\nreturn [{ json: { ok: true, batch: c.batch } }];"
+      },
+      "id": "10d1c71f-898b-40c1-a0d8-8e29a1db0cf6",
+      "name": "Finish",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Campaign Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queued": {
+      "main": [
+        [
+          {
+            "node": "Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pages": {
+      "main": [
+        [
+          {
+            "node": "Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Status?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Send": {
+      "main": [
+        [
+          {
+            "node": "Finish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Send?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send?": {
+      "main": [
+        [
+          {
+            "node": "Queued",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status?": {
+      "main": [
+        [
+          {
+            "node": "Status Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tag Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

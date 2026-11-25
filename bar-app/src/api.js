@@ -153,7 +153,12 @@ export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
   return recent(key, maxAge) || shared(key, async () => writeCache(key, need(await call('reminders', pin, { from, to }), 'reminders')));
 };
 
+// Founders text campaign (workflow 12): the batches with their progress, and starting one batch
+export const getCampaign = (pin) => call('campaign-status', pin);
+export const sendCampaignBatch = (pin, batch) => call('campaign-send', pin, { batch });
+
 // ---------- demo data ----------
+const demoCampaign = { today: '2026-11-25', batches: [1, 2, 3, 4, 5, 6].map((n) => ({ batch: n, total: n === 6 ? 475 : 480, texts: n === 1 ? [480, 470, 0] : [0, 0, 0], started: false, startedAt: '', startedDate: '', queued: 0, finishedAt: '', sending: false })) };
 let demoPin = '1234'; // the Settings page can change it while the demo runs
 const demoSettings = { ghl: {}, urls: { signupFormUrl: 'https://example.com/join-the-mug-club' }, toast: {} };
 const demoStatus = { d001: 'Delivered', d002: 'Received', d014: 'Ordered' };
@@ -205,6 +210,13 @@ async function demo(action, pin, extra) {
         { id: 'd037', mug: '037', name: 'Doug Reed', phone: '+13035550137', email: 'doug@example.com', perks: perks(['four_pack']), initialPour: '2026-08-15' },
       ].map((m) => ({ ...m, ...demoEdits[m.id], mugStatus: demoStatus[m.id] || '' })),
     };
+  }
+  if (action === 'campaign-status') return { status: true, ...demoCampaign, updatedAt: new Date().toISOString() };
+  if (action === 'campaign-send') {
+    const b = demoCampaign.batches.find((x) => x.batch === Number(extra.batch));
+    if (!b || b.started) throw new Error('Batch already started');
+    Object.assign(b, { started: true, startedAt: new Date().toISOString(), startedDate: demoCampaign.today, finishedAt: new Date().toISOString() });
+    return { ok: true, queued: true, batch: b.batch };
   }
   if (action === 'reminders') {
     const reminders = [

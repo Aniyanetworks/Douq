@@ -125,3 +125,10 @@ The Founding Membership is limited to 50 people. Both a member and a partner cou
 2. Creates the partner as their own contact with tags `founder` and `founding-partner` (their Partner fields point back at the member).
 3. Calls workflow 4 for the partner: own F mug number, own perks, member tag.
 A partner who already has the `mug-club-member` tag is left alone. The partner stays a member if the first member cancels.
+
+## Founders text campaign in batches (workflow 12 + counter app)
+The Founders Essential Text Blast (GHL) is sent in 6 batches of about 480 contacts so each day stays under the 500-a-day text limit.
+- **Audience:** phone not empty, SMS DND not set, not tagged as an enrollee of the earlier campaign. Each contact carries a tag `founders-batch-1` ... `-6`, and a smart list "Founders Text - Batch N" shows each batch.
+- **Starting a batch:** the GHL workflow starts when a contact is given the tag `founders-send`. The counter app (Campaign tab) calls the bar site API (`campaign-send`), which calls workflow 12; workflow 12 adds `founders-send` to that batch.
+- **Safety:** a batch can be started once, and only one batch a day (enforced in workflow 12). Config: `SECRET` (the same value is in workflow 6), `BATCHES`, `TEXT_TAGS`, `TIMEZONE`.
+- **Monitoring:** the Campaign tab shows each batch with how many members have the `founders-text-1/2/3-sent` tags (added by the GHL workflow after each text). Members who already received Text 1 in an earlier send are flagged before a batch is started.

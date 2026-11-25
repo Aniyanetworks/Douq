@@ -435,3 +435,16 @@ dialog.intake::backdrop { background: rgba(25, 60, 49, .45); }
 
 .member-title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 8px; }
 .member-title .member-name { margin: 0; }
+
+/* Founders text campaign */
+.batch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 16px 0; }
+.batch-card { border: 1px solid var(--line, #e1e4dc); border-radius: 12px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 8px; }
+.batch-card.started { background: #f4f8f3; }
+.batch-card h3 { margin: 0; font-size: 16px; }
+.bar-row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 8px; }
+.bar { height: 8px; border-radius: 6px; background: #e6ebe4; overflow: hidden; }
+.bar > div { height: 100%; background: #2d6a4b; border-radius: 6px; }
+.warn-text { background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; font-size: 12px; margin: 2px 0; }
+.confirm p { margin: 0 0 8px; font-size: 13px; }
+.confirm .row { gap: 8px; justify-content: flex-start; }
+@media (max-width: 600px) { .batch-grid { grid-template-columns: 1fr; } }
