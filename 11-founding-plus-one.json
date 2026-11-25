@@ -1,0 +1,482 @@
+{
+  "name": "11.Craft Mountain – Founding Plus One",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "founding-plus-one",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "166f8de0-eb8c-4f68-8556-50e5c203a94a",
+      "name": "Plus One Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "913c6e0e-d5df-405d-aa94-de8b037ef90d"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG - Founding Membership + One (see README.md)\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  MEMBER_TAG: 'mug-club-member', // a partner who already has this tag is left alone\n  FOUNDER_TAG: 'founder',        // both people get it, so they get F numbers and count toward the 50\n  PARTNER_TAG: 'founding-partner', // marks the person who joined as the \"+ One\"\n  NEW_MEMBER_URL: 'https://n8n.srv1300653.hstgr.cloud/webhook/new-member', // workflow 4: mug number, perks, member tag\n  FIELD_IDS: { // the Partner fields of the Plus One form (same fields as workflow 8)\n    partnerFirstName: 'hI3sepNhpwOxGwyQOhRZ',\n    partnerLastName: 'SNkcXyVNmEgFHUOygCMY',\n    partnerEmail: '3EchTsgaL50DSvuQDoCC',\n    partnerPhone: 'es7Of9Be8D6u2QhzqhMd',\n  },\n}}];"
+      },
+      "id": "eb6f1b13-c761-4c96-be86-dda21027803a",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Plus One Webhook').first().json.body.contact_id || $('Plus One Webhook').first().json.body.contactId || $('Plus One Webhook').first().json.body.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9fe8c46c-ccef-4ddc-bed6-db5531ff9581",
+      "name": "Get Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Get Member').first().json.contact.id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: [$('Config').first().json.FOUNDER_TAG] }) }}"
+      },
+      "id": "9f8079a5-8f23-4e3e-8aa7-4d48f17ecbf1",
+      "name": "Tag Member Founder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads the partner details the member typed on the Founding Membership + One form.\nconst cfg = $('Config').first().json;\nconst member = $('Get Member').first().json.contact || {};\nconst cf = {};\nfor (const f of member.customFields || []) cf[f.id] = f.value;\nconst F = cfg.FIELD_IDS;\nconst val = (id) => String(cf[id] || '').trim();\nconst partnerEmail = val(F.partnerEmail).toLowerCase();\nconst memberEmail = String(member.email || '').trim().toLowerCase();\nif (!partnerEmail || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(partnerEmail)) return [{ json: { skip: 'No valid partner email' } }];\nif (partnerEmail === memberEmail) return [{ json: { skip: \"Partner email is the member's own email\" } }];\nreturn [{ json: {\n  skip: '',\n  memberId: member.id,\n  partnerEmail,\n  partnerFirstName: val(F.partnerFirstName),\n  partnerLastName: val(F.partnerLastName),\n  partnerPhone: val(F.partnerPhone),\n  memberFirstName: member.firstName || '',\n  memberLastName: member.lastName || '',\n  memberEmail,\n  memberPhone: member.phone || '',\n} }];"
+      },
+      "id": "f7bac061-ffb4-40bc-805c-b6b674d3a2ba",
+      "name": "Read Partner Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4cd788cf-0f2e-4fbf-a27f-c367d9ba5960",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "745819e8-43cc-441a-bc1d-4aa76d4acc7e",
+      "name": "Has Partner?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/search/duplicate?locationId={{ $('Config').first().json.LOCATION_ID }}&email={{ encodeURIComponent($json.partnerEmail) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "493760a8-9e3b-4eb3-998a-1019f4222b05",
+      "name": "Find Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        200
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds the partner as a Founding Member of their own: own contact, founder tag (so workflow 4 gives an F number), own perks.\n// Their Partner fields point back at the member. A partner who is already a member is left alone.\nconst cfg = $('Config').first().json;\nconst d = $('Read Partner Details').first().json;\nconst existing = $json.contact || null;\nif (existing && (existing.tags || []).includes(cfg.MEMBER_TAG)) {\n  return [{ json: { created: false, reason: 'Partner is already a member', partnerId: existing.id } }];\n}\nconst F = cfg.FIELD_IDS;\nconst cf = (id, v) => (v ? [{ id, field_value: v }] : []);\nconst body = {\n  locationId: cfg.LOCATION_ID,\n  email: d.partnerEmail,\n  firstName: d.partnerFirstName || undefined,\n  lastName: d.partnerLastName || undefined,\n  phone: d.partnerPhone || undefined,\n  source: 'Founding Membership + One',\n  tags: [...new Set([...((existing && existing.tags) || []), cfg.FOUNDER_TAG, cfg.PARTNER_TAG])], // keeps the tags the contact already has (upsert would replace them)\n  customFields: [\n    ...cf(F.partnerFirstName, d.memberFirstName),\n    ...cf(F.partnerLastName, d.memberLastName),\n    ...cf(F.partnerEmail, d.memberEmail),\n    ...cf(F.partnerPhone, d.memberPhone),\n  ],\n};\nreturn [{ json: { created: true, body } }];"
+      },
+      "id": "83dec57a-ba92-413f-9443-19ba4581b6c0",
+      "name": "Build Partner Contact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fbd3240e-e5f8-419c-96c3-0e635418e7d2",
+              "leftValue": "={{ $json.created }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4cf83bf1-5588-4562-b88c-77bf6a73af5c",
+      "name": "Create Partner?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}"
+      },
+      "id": "480ca92c-cdd6-4d50-be35-7ad729c06e78",
+      "name": "Save Partner Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        100
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.NEW_MEMBER_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contact_id: ($json.contact || {}).id }) }}",
+        "options": {}
+      },
+      "id": "0655b34d-1957-4d21-8912-87f96621f0a8",
+      "name": "Number Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, partner: $('Save Partner Contact').first().json.contact ? $('Save Partner Contact').first().json.contact.id : '', mug: $json.mug || '' }) }}",
+        "options": {}
+      },
+      "id": "5e5aa00f-f609-45a6-9163-362dd6957cc2",
+      "name": "Partner Added",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2464,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, skipped: $json.reason || $json.skip || '' }) }}",
+        "options": {}
+      },
+      "id": "5bb5fe50-e8ad-4b05-bda5-35fb78589851",
+      "name": "Nothing To Do",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Plus One Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Member": {
+      "main": [
+        [
+          {
+            "node": "Tag Member Founder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Member Founder": {
+      "main": [
+        [
+          {
+            "node": "Read Partner Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Partner Details": {
+      "main": [
+        [
+          {
+            "node": "Has Partner?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Partner": {
+      "main": [
+        [
+          {
+            "node": "Build Partner Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Partner Contact": {
+      "main": [
+        [
+          {
+            "node": "Create Partner?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Partner Contact": {
+      "main": [
+        [
+          {
+            "node": "Number Partner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Number Partner": {
+      "main": [
+        [
+          {
+            "node": "Partner Added",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Partner?": {
+      "main": [
+        [
+          {
+            "node": "Find Partner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing To Do",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Partner?": {
+      "main": [
+        [
+          {
+            "node": "Save Partner Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing To Do",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,261 @@
+{
+  "name": "10.Craft Mountain – Founding Spots Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "a53bc6b2-0e2a-4963-8117-d068676911f1",
+      "name": "Every 10 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// CONFIG - Founding Member spots alert\n// ============================================================\nreturn [{ json: {\n  LOCATION_ID: 'XTpY4DQ6CrYVvesFdX3K',\n  TOTAL_SPOTS: 50,\n  ALERT_AT: [48, 50], // alert when this many Founding Members are in (48 = two spots left, 50 = sold out)\n  COUNT_TAGS: ['founder', 'pre founder'], // a contact with either tag takes a spot (counted once)\n  // GHL workflow with an \"Inbound Webhook\" trigger and an \"Internal Notification\" action to all users\n  ALERT_WEBHOOK_URL: 'https://services.leadconnectorhq.com/hooks/XTpY4DQ6CrYVvesFdX3K/webhook-trigger/c7a64e14-37f5-44ec-b5b0-c103c7314b99',\n}}];"
+      },
+      "id": "3ce399a9-7758-4195-9087-a6e84857617c",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, pageLimit: 100, filters: [{ field: 'tags', operator: 'contains', value: [$('Config').first().json.COUNT_TAGS[0]] }] }) }}",
+        "options": {}
+      },
+      "id": "9a55f8a5-418e-4148-8284-d7a9a8b3c43b",
+      "name": "Find Founders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: $('Config').first().json.LOCATION_ID, pageLimit: 100, filters: [{ field: 'tags', operator: 'contains', value: [$('Config').first().json.COUNT_TAGS[1]] }] }) }}",
+        "options": {}
+      },
+      "id": "75d70607-624a-4c90-9920-8e54dbed026a",
+      "name": "Find Pre Founders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "02x3PFajRyULMOOr",
+          "name": "Douq GHL"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Counts the Founding Members and decides whether an alert is due. Each alert is sent once:\n// it is sent again only after the count has dropped below the level (for example a cancelled member).\nconst cfg = $('Config').first().json;\nconst ids = new Set();\nfor (const name of ['Find Founders', 'Find Pre Founders']) {\n  for (const c of ($(name).first().json.contacts || [])) ids.add(c.id);\n}\nconst count = ids.size;\nconst left = Math.max(0, cfg.TOTAL_SPOTS - count);\nconst level = Math.max(0, ...cfg.ALERT_AT.filter((n) => count >= n));\nconst state = $getWorkflowStaticData('global');\nconst last = state.lastAlert || 0;\nlet send = false;\nif (level > last) { send = true; state.lastAlert = level; }\nelse if (level < last) { state.lastAlert = level; }\nconst message = left === 0\n  ? 'Craft Mountain: all ' + cfg.TOTAL_SPOTS + ' Founding Member spots are taken. STOP the Founding Membership campaign now.'\n  : 'Craft Mountain: only ' + left + ' Founding Member spot' + (left === 1 ? '' : 's') + ' left (' + count + ' of ' + cfg.TOTAL_SPOTS + '). STOP the Founding Membership campaign now.';\nreturn [{ json: { send, count, left, level, message, url: cfg.ALERT_WEBHOOK_URL } }];"
+      },
+      "id": "eff72d67-777a-4607-9e34-bc5e1542836f",
+      "name": "Decide",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "e2f3ebed-492c-431f-9731-e6cd0b7c5e02",
+              "leftValue": "={{ $json.send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e01eaaa4-2034-413e-aae7-e399bb92f9c8",
+      "name": "Alert Due?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.message, count: $json.count, spots_left: $json.left, level: $json.level }) }}",
+        "options": {}
+      },
+      "id": "3f5c4a94-d9dc-4258-9d88-474e5f6c6a79",
+      "name": "Notify Staff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Every 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Find Founders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Founders": {
+      "main": [
+        [
+          {
+            "node": "Find Pre Founders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Pre Founders": {
+      "main": [
+        [
+          {
+            "node": "Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide": {
+      "main": [
+        [
+          {
+            "node": "Alert Due?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Due?": {
+      "main": [
+        [
+          {
+            "node": "Notify Staff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -114,3 +114,14 @@ When a member's mug is ordered (status **Requested**, shown as "Ordered by Membe
 6. Follow-ups are plain GHL steps: wait 1 day and, if the status is still Requested, send "Reminder 1" to the vendor user (same link); wait again for "Reminder 2" and a notification to staff. Once the status changes, the If/Else stops them.
 
 Setup: create the member custom field **Vendor Order Link**, set its id, `SECRET` (30+ random characters) and the web address in the `CFG` and `CFG Confirm 2` nodes of workflow 9, and activate it.
+
+## Founding Members: spots alert and Plus One (workflows 10 and 11)
+The Founding Membership is limited to 50 people. Both a member and a partner count as one Founding Member each.
+
+**Workflow 10 - Founding Spots Alert.** Every 10 minutes it counts contacts tagged `founder` or `pre founder` (each person once). At 48 and again at 50 it posts to a GHL Inbound Webhook workflow ("Founding Spots Alert (internal)"), which emails and texts all users: stop the campaign. Each alert is sent once, and again only if the count drops below the level and comes back. Config: `TOTAL_SPOTS`, `ALERT_AT`, `COUNT_TAGS`, `ALERT_WEBHOOK_URL`.
+
+**Workflow 11 - Founding Plus One.** The Founding Membership + One form collects the member and the partner. A GHL workflow ("Founding Plus One - add partner (n8n)", trigger: order form submitted in the Founding Membership funnel with Partner Email filled) posts the member contact id to the `founding-plus-one` webhook. Workflow 11 then:
+1. Adds the `founder` tag to the member.
+2. Creates the partner as their own contact with tags `founder` and `founding-partner` (their Partner fields point back at the member).
+3. Calls workflow 4 for the partner: own F mug number, own perks, member tag.
+A partner who already has the `mug-club-member` tag is left alone. The partner stays a member if the first member cancels.
