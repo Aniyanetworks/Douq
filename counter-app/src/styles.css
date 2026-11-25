@@ -445,13 +445,7 @@ dialog.intake::backdrop { background: rgba(25, 60, 49, .45); }
 .bar { height: 8px; border-radius: 6px; background: #e6ebe4; overflow: hidden; }
 .bar > div { height: 100%; background: #2d6a4b; border-radius: 6px; }
 .warn-text { background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; font-size: 12px; margin: 2px 0; }
-.confirm p { margin: 0 0 8px; font-size: 13px; }
-.confirm .row { gap: 8px; justify-content: flex-start; }
 @media (max-width: 600px) { .batch-grid { grid-template-columns: 1fr; } }
 
-.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 16px 0 0; }
-.tool { border: 1px dashed #c9d3c6; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-.tool h3 { margin: 0; font-size: 15px; }
-.tool p { margin: 0; }
-.tool input[type=number] { width: 100%; margin-top: 4px; }
-.tool input[type=email], .tool input[type=tel] { width: 100%; margin-top: 4px; }
+.campaign-actions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 600px) { .campaign-actions button { flex: 1; } }
