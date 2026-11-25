@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings | campaign.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\n// Founders text campaign (workflow 12): batch status and start\nif (/^campaign-(status|send|test|newbatch)$/.test(String(body.action))) return [{ json: { route: 'campaign', action: body.action, batch: body.batch, size: body.size, preview: body.preview === true } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug, tier: body.tier } }];"
+        "jsCode": "// Checks the staff PIN and picks what the site asked for: members | log | reminders | mug-status | member-update | settings | campaign.\nconst cfg = $('Config').first().json;\nconst body = $('Bar API Webhook').first().json.body || {};\n// Other workflows read the saved settings with the service key (no PIN)\nif (body.action === 'settings-service') {\n  return [{ json: { route: cfg.SERVICE_KEY && body.serviceKey === cfg.SERVICE_KEY ? 'settings' : 'denied' } }];\n}\nif (!cfg.STAFF_PIN || cfg.STAFF_PIN === 'CHANGE-ME' || String(body.pin || '') !== String(cfg.STAFF_PIN)) {\n  return [{ json: { route: 'denied' } }];\n}\nif (body.action === 'settings-get' || body.action === 'settings-save') return [{ json: { route: 'settings' } }];\n// Founders text campaign (workflow 12): batch status and start\nif (/^campaign-(status|send|test|newbatch)$/.test(String(body.action))) return [{ json: { route: 'campaign', action: body.action, batch: body.batch, size: body.size, preview: body.preview === true, email: body.email, phone: body.phone } }];\nconst route = ['log', 'reminders', 'mug-status', 'member-update'].includes(body.action) ? body.action : 'members';\nreturn [{ json: { route, from: body.from || '', to: body.to || '', contactId: body.contactId || '', status: body.status || '', name: body.name, email: body.email, phone: body.phone, mug: body.mug, tier: body.tier } }];"
       },
       "id": "984bcb0c-bccf-4a54-926c-b74a9b60cd07",
       "name": "Check Request",
@@ -913,7 +913,7 @@
         "url": "https://n8n.srv1300653.hstgr.cloud/webhook/founders-campaign",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ secret: 'VTNLn3qmT0Sw2dcuICHPBtNdeBqA2BzQCKUaUpmN', action: $json.action, batch: $json.batch, size: $json.size, preview: $json.preview }) }}",
+        "jsonBody": "={{ JSON.stringify({ secret: 'VTNLn3qmT0Sw2dcuICHPBtNdeBqA2BzQCKUaUpmN', action: $json.action, batch: $json.batch, size: $json.size, preview: $json.preview, email: $json.email, phone: $json.phone }) }}",
         "options": {
           "timeout": 110000
         }

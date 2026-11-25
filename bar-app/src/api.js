@@ -156,8 +156,8 @@ export const getReminders = async (pin, from, to, { maxAge = 0 } = {}) => {
 // Founders text campaign (workflow 12): the batches with their progress, and starting one batch
 export const getCampaign = (pin) => call('campaign-status', pin);
 export const sendCampaignBatch = (pin, batch) => call('campaign-send', pin, { batch });
-// Texts only the test contact(s), so the real texts can be checked before a batch is started
-export const sendCampaignTest = (pin) => call('campaign-test', pin);
+// Texts only one test contact (the email and phone given, or the default test contact), so the real texts can be checked before a batch is started
+export const sendCampaignTest = (pin, { email = '', phone = '' } = {}) => call('campaign-test', pin, { email, phone });
 // New batch from contacts that are not in a batch yet: preview = just count them; otherwise create it with `size` contacts
 export const newCampaignBatch = (pin, { size = 0, preview = false } = {}) => call('campaign-newbatch', pin, { size, preview });
 
@@ -216,7 +216,7 @@ async function demo(action, pin, extra) {
     };
   }
   if (action === 'campaign-status') return { status: true, ...demoCampaign, updatedAt: new Date().toISOString() };
-  if (action === 'campaign-test') return { ok: true, tested: ['Test User'] };
+  if (action === 'campaign-test') return { ok: true, tested: [`${extra.email || 'test.user01@mail.com'} / ${extra.phone || '+14375293053'}`] };
   if (action === 'campaign-newbatch') {
     if (extra.preview) return { ok: true, preview: true, available: 37, max: 490 };
     const n = demoCampaign.batches.length + 1;

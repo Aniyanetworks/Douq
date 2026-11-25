@@ -9,6 +9,8 @@ const pct = (n, total) => (total ? Math.min(100, Math.round((n / total) * 100)) 
 
 // Founders text campaign: the audience is split into batches; starting a batch tags its contacts, which starts the GHL texts.
 // Only one batch a day can be started (the account sends at most 500 texts a day); the server enforces it too.
+const DEFAULT_TEST = { email: 'test.user01@mail.com', phone: '+1 437-529-3053' };
+
 export default function Campaign({ pin, onAuthError }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -17,6 +19,7 @@ export default function Campaign({ pin, onAuthError }) {
   const [starting, setStarting] = useState(0);
   const [notice, setNotice] = useState('');
   const [testing, setTesting] = useState(false); // false | 'confirm' | 'sending'
+  const [testTo, setTestTo] = useState(DEFAULT_TEST);
   const [fresh, setFresh] = useState(null); // new batch panel: null (closed) | { available, size, busy }
   const live = useRef(true);
 
@@ -74,11 +77,11 @@ export default function Campaign({ pin, onAuthError }) {
     setError('');
     setNotice('');
     try {
-      const res = await sendCampaignTest(pin);
+      const res = await sendCampaignTest(pin, testTo);
       setNotice(`Test started for ${(res.tested || []).join(', ') || 'the test contact'}. Text 1 goes out now; the next texts follow the workflow's schedule.`);
     } catch (err) {
       if (err instanceof AuthError) return onAuthError();
-      setError("Could not start the test. Please try again.");
+      setError(err && err.message && !/^Server error|Unexpected/.test(err.message) ? err.message : 'Could not start the test. Please try again.');
     } finally {
       setTesting(false);
     }
@@ -143,11 +146,20 @@ export default function Campaign({ pin, onAuthError }) {
           <div className="tools">
             <div className="tool">
               <h3>Send a test</h3>
-              <p className="label">Starts the same texts for the test contact only (Test User), before you start a real batch.</p>
+              <p className="label">Starts the same texts for one test contact only, before you start a real batch. Use a number whose owner agreed to get the texts.</p>
+              <label className="label">Test email
+                <input type="email" value={testTo.email} onChange={(e) => setTestTo({ ...testTo, email: e.target.value })} disabled={testing === 'sending'} />
+              </label>
+              <label className="label">Test phone
+                <input type="tel" value={testTo.phone} onChange={(e) => setTestTo({ ...testTo, phone: e.target.value })} disabled={testing === 'sending'} />
+              </label>
               {testing === 'confirm' ? (
-                <div className="row">
-                  <button className="secondary" onClick={() => setTesting(false)}>Cancel</button>
-                  <button onClick={runTest}>Yes, text the test contact</button>
+                <div className="confirm">
+                  <p>Text {testTo.phone} ({testTo.email}) now?</p>
+                  <div className="row">
+                    <button className="secondary" onClick={() => setTesting(false)}>Cancel</button>
+                    <button onClick={runTest}>Yes, send the test</button>
+                  </div>
                 </div>
               ) : (
                 <button className="secondary" onClick={() => { setTesting('confirm'); setError(''); setNotice(''); }} disabled={testing === 'sending'}>

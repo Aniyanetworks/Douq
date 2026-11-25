@@ -454,3 +454,4 @@ dialog.intake::backdrop { background: rgba(25, 60, 49, .45); }
 .tool h3 { margin: 0; font-size: 15px; }
 .tool p { margin: 0; }
 .tool input[type=number] { width: 100%; margin-top: 4px; }
+.tool input[type=email], .tool input[type=tel] { width: 100%; margin-top: 4px; }
